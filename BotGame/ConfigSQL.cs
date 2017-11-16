@@ -12,6 +12,7 @@ namespace BotGame
         public Hashtable issues;
 
         private string key;
+        private string IdBot;// = "460362250";
 
         public string KEY
         {
@@ -25,44 +26,79 @@ namespace BotGame
             }
         }
 
+        public string IDBOT
+        {
+            get
+            {
+                return IdBot;
+            }
+            private set
+            {
+                IdBot = value;
+            }
+        }
+
         public ConfigSQL()
         {
             issues = new Hashtable();
             connection = new SQLiteConnection(string.Format("Data Source={0};", PATH_BASE));
-                        
+
             try
             {
                 connection.Open();
 
-                SQLiteCommand commandKey = new SQLiteCommand("select key from 'settings';", connection);
+                SQLiteCommand commandKey = new SQLiteCommand("select key, value from 'settings';", connection);
                 SQLiteDataReader readerKey = commandKey.ExecuteReader();
                 foreach (DbDataRecord record in readerKey)
                 {
-                    KEY = record["key"].ToString();
+                    if (record["key"].ToString() == "token")
+                    {
+                        KEY = record["value"].ToString();
+                    }
+                    if (record["key"].ToString() == "id_bot")
+                    {
+                        IDBOT = record["value"].ToString();
+                    }
                 }
+                connection.Close();
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+            }
+        }
 
+        public void SelectQuestion()
+        {
+            try
+            {
                 SQLiteCommand command = new SQLiteCommand("select id, question_text," +
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
-                    "complexity, category from 'issues';", connection);
+                    "complexity, category, type_answer from 'issues';", connection);
                 SQLiteDataReader reader = command.ExecuteReader();
                 foreach (DbDataRecord record in reader)
                 {
                     if (!issues.ContainsKey(Convert.ToInt32(record["id"])))
-                        issues.Add(Convert.ToInt32(record["id"]), 
+                    {
+                        string complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? "-1" : record["complexity"].ToString();
+                        string typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? "-1" : record["type_answer"].ToString();
+                        issues.Add(Convert.ToInt32(record["id"]),
                             new IssuesClass
                             {
-                                QuestionText = record["question_text"].ToString(),                                
+                                QuestionText = record["question_text"].ToString(),
                                 CorrectAnswer = record["correct_answer"].ToString(),
                                 PossibleAnswer_1 = record["possible_answer_1"].ToString(),
                                 PossibleAnswer_2 = record["possible_answer_2"].ToString(),
                                 PossibleAnswer_3 = record["possible_answer_3"].ToString(),
-                                Complexity = Convert.ToInt32(record["complexity"]),
-                                Category = record["category"].ToString()
+                                Complexity = Convert.ToInt32(complexity),
+                                Category = record["category"].ToString(),
+                                TypeAnswer = Convert.ToInt32(typeAnswer)
                             });
+                    }
                 }
-                connection.Close();                
+                connection.Close();
             }
-            catch
+            catch (Exception e)
             {
                 connection.Close();
             }

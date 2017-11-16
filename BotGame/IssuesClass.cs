@@ -10,5 +10,6 @@
         public string PossibleAnswer_3;
         public int Complexity;
         public string Category;
+        public int TypeAnswer;
     }
 }

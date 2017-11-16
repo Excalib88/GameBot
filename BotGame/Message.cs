@@ -2,17 +2,17 @@
 {
     public class Message
     {
-        public long ChatId;
-        public long MessageId;
-        public long UserId;
+        public string ChatId;
+        public string MessageId;
+        public string UserId;
         public string UserFirstName;
         public string UserLastName;
         public string UserUsername;
         public string MessageText;
         public string MmessageDate;
 
-        public long ReplayToMessageId;
+        public string ReplayToMessageId;
         public string ReplayToMessageText;
-        public long ReplayToUserId;
+        // public string ReplayToUserId;
     }
 }
