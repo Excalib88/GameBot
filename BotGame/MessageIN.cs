@@ -1,6 +1,6 @@
 ﻿namespace BotGame
 {
-    public class Message
+    public class MessageIN
     {
         public string ChatId;
         public string MessageId;

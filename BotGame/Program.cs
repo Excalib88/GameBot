@@ -9,12 +9,12 @@ namespace BotGame
     {
         static BackgroundWorker BW;
         static ConfigSQL config;
-        static Message msg;
+        static MessageIN msg;
 
         static void Main(string[] args)
         {
             config = new ConfigSQL();
-            msg = new Message();
+            msg = new MessageIN();
             BW = new BackgroundWorker();
             BW.DoWork += BWBot;
             
@@ -34,6 +34,12 @@ namespace BotGame
             return true;
         }
 
+        static bool GAME()
+        {
+            // проверяем на игру
+            return true;
+        }
+
         async static void BWBot(object sender, DoWorkEventArgs e)
         {
             var worker = sender as BackgroundWorker;
@@ -41,11 +47,13 @@ namespace BotGame
             try
             {                
                 var Bot = new Telegram.Bot.TelegramBotClient(key);
-                await Bot.SetWebhookAsync("");               
+                await Bot.SetWebhookAsync("");
+
+                List<int> questionNumber = new List<int>();
 
                 Bot.OnUpdate += async (object su, Telegram.Bot.Args.UpdateEventArgs evu) =>
                 {
-                    bool resultReplay = false;
+                    // bool resultReplay = false;
                     if (evu.Update.CallbackQuery != null || evu.Update.InlineQuery != null)
                         return;
 
@@ -54,8 +62,7 @@ namespace BotGame
 
                     if (message == null)
                         return;
-
-                    List<int> questionNumber = new List<int>();
+                                        
                     if (GetActivity())
                     {
                         // получаем список вопросов
@@ -72,22 +79,22 @@ namespace BotGame
                         }
                     }
 
-                    if (GetActivity())
+                    if (GAME())
                     {
                         // начинаем игру                                                      
                         // логика игры
-                        await Bot.SendTextMessageAsync(message.Chat.Id, @"Внимание, начинается игра!");
+                        var messageOUT1 = await Bot.SendTextMessageAsync(message.Chat.Id, @"Внимание, начинается игра!");
                         // получаем вопрос
                         IssuesClass issues = (IssuesClass)config.issues[questionNumber[0]];
 
                         // если ответ через реплай
                         if (issues.TypeAnswer == 1)
                         {
-                            await Bot.SendTextMessageAsync(message.Chat.Id, issues.QuestionText);
+                            var messageOUT = await Bot.SendTextMessageAsync(message.Chat.Id, issues.QuestionText);
                         }
 
-                        questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопрос на игру
-                        config.issues = null; // очищаем список вопросов
+                        questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопросов на игру
+                        config.issues = null; // очищаем список вопросов в конце игры
                     }
                     else
                     {
@@ -112,7 +119,7 @@ namespace BotGame
                                 msg.ReplayToMessageId = message.ReplyToMessage.MessageId.ToString();
                                 msg.ReplayToMessageText = message.ReplyToMessage.Text;
                                 // msg.ReplayToUserId = message.ReplyToMessage.From.Id.ToString();
-                                resultReplay = true;
+                                // resultReplay = true;
                             }
                         }
                     }

@@ -72,6 +72,8 @@ namespace BotGame
         {
             try
             {
+                connection.Open();
+
                 SQLiteCommand command = new SQLiteCommand("select id, question_text," +
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
                     "complexity, category, type_answer from 'issues';", connection);

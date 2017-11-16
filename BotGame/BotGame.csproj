@@ -123,7 +123,8 @@
   <ItemGroup>
     <Compile Include="ConfigSQL.cs" />
     <Compile Include="IssuesClass.cs" />
-    <Compile Include="Message.cs" />
+    <Compile Include="MessageIN.cs" />
+    <Compile Include="MessageOUT.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
