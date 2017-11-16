@@ -9,12 +9,12 @@ namespace BotGame
     {
         static BackgroundWorker BW;
         static ConfigSQL config;
-        static MessageIN msg;
+        // static MessageIN msg;
 
         static void Main(string[] args)
         {
             config = new ConfigSQL();
-            msg = new MessageIN();
+            // msg = new MessageIN();
             BW = new BackgroundWorker();
             BW.DoWork += BWBot;
             
@@ -28,16 +28,34 @@ namespace BotGame
             Console.ReadLine();
         }
 
+        static int getActivity = -1;
+        static int game = 0;
         static bool GetActivity()
         {
             // проверяем активность
-            return true;
+            if (getActivity == -1)
+            {
+                getActivity = 0;
+                return true;
+            }
+            else
+            {                
+                return false;
+            }
         }
-
+        
         static bool GAME()
         {
             // проверяем на игру
-            return true;
+            if (game == -1)
+            {
+                // game = 0;
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         async static void BWBot(object sender, DoWorkEventArgs e)
@@ -50,7 +68,8 @@ namespace BotGame
                 await Bot.SetWebhookAsync("");
 
                 List<int> questionNumber = new List<int>();
-
+                List<MessageOUT> messageOUT = new List<MessageOUT>();
+                bool end = false;
                 Bot.OnUpdate += async (object su, Telegram.Bot.Args.UpdateEventArgs evu) =>
                 {
                     // bool resultReplay = false;
@@ -62,67 +81,91 @@ namespace BotGame
 
                     if (message == null)
                         return;
-                                        
+
+                    int n = -1;
                     if (GetActivity())
                     {
+                        var countTemp = new int[] { 7, 10, 15 };
+                        Random rndTemp = new Random();
+                        n = countTemp[rndTemp.Next(countTemp.Length)];
+
                         // получаем список вопросов
                         config.SelectQuestion();
                         var KeyId = config.issues.Keys;
-                        Random rnd = new Random();
+                        //Random rnd = new Random();
                         var vals = KeyId.Cast<int>().ToArray();
-                        int n = 10; // количество вопросов                        
+                        //int n = 10; // количество вопросов                        
                         for (int i = 0; i < n; i++)
                         {
-                            var val = vals[rnd.Next(vals.Length)];
+                            var val = vals[rndTemp.Next(vals.Length)];
                             if (!questionNumber.Contains(val))
                                 questionNumber.Add(val);
                         }
+                        if (questionNumber.Count < n)
+                        {
+                            n = questionNumber.Count;
+                        }
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, начинается игра!\nВсего вопросов: " + n.ToString());
+                        game = -1;
+                        System.Threading.Thread.Sleep(3000);
                     }
 
                     if (GAME())
-                    {
-                        // начинаем игру                                                      
-                        // логика игры
-                        var messageOUT1 = await Bot.SendTextMessageAsync(message.Chat.Id, @"Внимание, начинается игра!");
+                    {    
                         // получаем вопрос
                         IssuesClass issues = (IssuesClass)config.issues[questionNumber[0]];
 
                         // если ответ через реплай
-                        if (issues.TypeAnswer == 1)
+                        if (issues.TypeAnswer == 0)
                         {
-                            var messageOUT = await Bot.SendTextMessageAsync(message.Chat.Id, issues.QuestionText);
+                            var msgOUT = await Bot.SendTextMessageAsync(message.Chat.Id, issues.QuestionText);
+                            messageOUT.Add(
+                                new MessageOUT
+                                {
+                                    ChatId = msgOUT.Chat.Id.ToString(),
+                                    MessageId = msgOUT.MessageId.ToString(),
+                                    MessageText = msgOUT.Text.ToString(),
+                                    MmessageDate = msgOUT.Date.ToString()
+                                });
                         }
-
                         questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопросов на игру
-                        config.issues = null; // очищаем список вопросов в конце игры
-                    }
-                    else
-                    {
-                        // продолжаем мониторить
-                    }
-
-                    if (message.Type == Telegram.Bot.Types.Enums.MessageType.TextMessage)
-                    {
-                        msg.ChatId = update.Message.Chat.Id.ToString();
-                        msg.MessageId = update.Message.MessageId.ToString();
-                        msg.UserId = message.From.Id.ToString();
-                        msg.UserFirstName = message.From.FirstName;
-                        msg.UserLastName = message.From.LastName;
-                        msg.UserUsername = message.From.Username;
-                        msg.MessageText = message.Text;
-                        msg.MmessageDate = message.Date.ToString();
-
-                        if (message.ReplyToMessage != null)
+                        if (questionNumber.Count == 0)
                         {
-                            if (message.ReplyToMessage.From.Id.ToString() == config.IDBOT)
-                            {
-                                msg.ReplayToMessageId = message.ReplyToMessage.MessageId.ToString();
-                                msg.ReplayToMessageText = message.ReplyToMessage.Text;
-                                // msg.ReplayToUserId = message.ReplyToMessage.From.Id.ToString();
-                                // resultReplay = true;
-                            }
+                            game = 0;
+                            end = true;
+                            return;
                         }
+                    }                    
+
+                    if (questionNumber.Count < 1 && game == 0 && end)
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, игра закончена!");
+                        config.issues = null; // очищаем список вопросов в конце игры
+                        end = false;
                     }
+
+                    //if (message.Type == Telegram.Bot.Types.Enums.MessageType.TextMessage)
+                    //{
+                    //    msg.ChatId = update.Message.Chat.Id.ToString();
+                    //    msg.MessageId = update.Message.MessageId.ToString();
+                    //    msg.UserId = message.From.Id.ToString();
+                    //    msg.UserFirstName = message.From.FirstName;
+                    //    msg.UserLastName = message.From.LastName;
+                    //    msg.UserUsername = message.From.Username;
+                    //    msg.MessageText = message.Text;
+                    //    msg.MmessageDate = message.Date.ToString();
+
+                    //    if (message.ReplyToMessage != null)
+                    //    {
+                    //        if (message.ReplyToMessage.From.Id.ToString() == config.IDBOT)
+                    //        {
+                    //            msg.ReplayToMessageId = message.ReplyToMessage.MessageId.ToString();
+                    //            msg.ReplayToMessageText = message.ReplyToMessage.Text;
+                    //            // msg.ReplayToUserId = message.ReplyToMessage.From.Id.ToString();
+                    //            // resultReplay = true;
+                    //        }
+                    //    }
+                    //}
 
                     //var KeyId = config.issues.Keys;
                     //Random rnd = new Random();                    

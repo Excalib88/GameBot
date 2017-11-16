@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace BotGame
 {
-    class MessageOUT
+    public class MessageOUT
     {
+        public string ChatId;
+        public string MessageId;
+        public string MessageText;
+        public string MmessageDate;
     }
 }
