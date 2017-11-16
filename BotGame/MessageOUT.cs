@@ -11,6 +11,6 @@ namespace BotGame
         public string ChatId;
         public string MessageId;
         public string MessageText;
-        public string MmessageDate;
+        public DateTime MmessageDate;
     }
 }

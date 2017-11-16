@@ -70,14 +70,10 @@ namespace BotGame
             {
                 ChatId = msg.Chat.Id.ToString(),
                 MessageId = msg.MessageId.ToString(),
-                MessageText = msg.Text.ToString(),
-                MmessageDate = msg.Date.ToString()
+                MessageText = msg.Text,
+                MmessageDate = msg.Date
             };
-
-            //return Task.Run(() =>
-            //{
-                return msgOUT;
-           // });
+            return msgOUT;
         }
 
         async static void BWBot(object sender, DoWorkEventArgs e)
@@ -96,6 +92,7 @@ namespace BotGame
                 List<MessageIN> messageIN = new List<MessageIN>();
                 int num = 0;
                 bool end = false;
+
                 Bot.OnUpdate += async (object su, Telegram.Bot.Args.UpdateEventArgs evu) =>
                 {
                     // bool resultReplay = false;
@@ -138,7 +135,7 @@ namespace BotGame
 
                     if (GAME())
                     {    
-                        // получаем вопро
+                        // получаем вопрос
                         IssuesClass issues = (IssuesClass)config.issues[questionNumber[0]];
 
                         // если ответ через реплай
@@ -187,19 +184,14 @@ namespace BotGame
                                             }
                                         }
                                     }
-                                }
-                            // проверка ответа
-                        }
-                        //if (msgOUT is null)
-                        {
-                            // questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопросов на игру
+                                }// проверка ответа
+                        }// если ответ через реплай
 
-                            if (questionNumber.Count == 0)
-                            {
-                                game = 0;
-                                end = true;
-                            }
-                        }
+                        if (questionNumber.Count == 0)
+                        {
+                            game = 0;
+                            end = true;
+                        }                        
                     }                   
 
                     if (questionNumber.Count < 1 && game == 0 && end)
@@ -207,40 +199,7 @@ namespace BotGame
                         await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, игра закончена!");
                         config.issues = null; // очищаем список вопросов в конце игры
                         end = false;
-                    }
-
-                    //if (message.Type == Telegram.Bot.Types.Enums.MessageType.TextMessage)
-                    //{
-                    //    msg.ChatId = update.Message.Chat.Id.ToString();
-                    //    msg.MessageId = update.Message.MessageId.ToString();
-                    //    msg.UserId = message.From.Id.ToString();
-                    //    msg.UserFirstName = message.From.FirstName;
-                    //    msg.UserLastName = message.From.LastName;
-                    //    msg.UserUsername = message.From.Username;
-                    //    msg.MessageText = message.Text;
-                    //    msg.MmessageDate = message.Date.ToString();
-
-                    //    if (message.ReplyToMessage != null)
-                    //    {
-                    //        if (message.ReplyToMessage.From.Id.ToString() == config.IDBOT)
-                    //        {
-                    //            msg.ReplayToMessageId = message.ReplyToMessage.MessageId.ToString();
-                    //            msg.ReplayToMessageText = message.ReplyToMessage.Text;
-                    //            // msg.ReplayToUserId = message.ReplyToMessage.From.Id.ToString();
-                    //            // resultReplay = true;
-                    //        }
-                    //    }
-                    //}
-
-                    //var KeyId = config.issues.Keys;
-                    //Random rnd = new Random();                    
-                    //var vals = KeyId.Cast<int>().ToArray();
-                    //var val = vals[rnd.Next(vals.Length)];
-                    //IssuesClass issues = (IssuesClass)config.issues[val];                    
-                    //if (issues.TypeAnswer == 1)
-                    //{
-                    //    await Bot.SendTextMessageAsync(msg.ChatId, issues.QuestionText);
-                    //}                    
+                    }                 
                 };                
                 Bot.StartReceiving();
             }
