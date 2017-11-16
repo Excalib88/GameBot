@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
+using Telegram.Bot;
 
 namespace BotGame
 {
@@ -25,7 +27,10 @@ namespace BotGame
             }
             Console.WriteLine("start bot");
 
-            Console.ReadLine();
+            while (true)
+            {
+                Console.ReadLine();
+            }
         }
 
         static int getActivity = -1;
@@ -58,17 +63,38 @@ namespace BotGame
             }
         }
 
+        static async Task<MessageOUT> SendIssues(TelegramBotClient Bot, long chatId, string num, string questionText)
+        {
+            var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + questionText);
+            MessageOUT msgOUT = new MessageOUT
+            {
+                ChatId = msg.Chat.Id.ToString(),
+                MessageId = msg.MessageId.ToString(),
+                MessageText = msg.Text.ToString(),
+                MmessageDate = msg.Date.ToString()
+            };
+
+            //return Task.Run(() =>
+            //{
+                return msgOUT;
+           // });
+        }
+
         async static void BWBot(object sender, DoWorkEventArgs e)
         {
             var worker = sender as BackgroundWorker;
             var key = e.Argument as String;
             try
             {                
-                var Bot = new Telegram.Bot.TelegramBotClient(key);
+                var Bot = new TelegramBotClient(key);
                 await Bot.SetWebhookAsync("");
 
                 List<int> questionNumber = new List<int>();
+                MessageOUT msgOUT = null;
+                MessageIN msgIN = null;
                 List<MessageOUT> messageOUT = new List<MessageOUT>();
+                List<MessageIN> messageIN = new List<MessageIN>();
+                int num = 0;
                 bool end = false;
                 Bot.OnUpdate += async (object su, Telegram.Bot.Args.UpdateEventArgs evu) =>
                 {
@@ -112,30 +138,69 @@ namespace BotGame
 
                     if (GAME())
                     {    
-                        // получаем вопрос
+                        // получаем вопро
                         IssuesClass issues = (IssuesClass)config.issues[questionNumber[0]];
 
                         // если ответ через реплай
                         if (issues.TypeAnswer == 0)
                         {
-                            var msgOUT = await Bot.SendTextMessageAsync(message.Chat.Id, issues.QuestionText);
-                            messageOUT.Add(
-                                new MessageOUT
+                            if (msgOUT is null)
+                            {
+                                num++;
+                                msgOUT = await SendIssues(Bot, message.Chat.Id, num.ToString(), issues.QuestionText);                           
+                                messageOUT.Add(msgOUT);
+                            }
+                            // проверка ответа
+                            if (msgOUT != null)
+                                if (message.ReplyToMessage != null)
                                 {
-                                    ChatId = msgOUT.Chat.Id.ToString(),
-                                    MessageId = msgOUT.MessageId.ToString(),
-                                    MessageText = msgOUT.Text.ToString(),
-                                    MmessageDate = msgOUT.Date.ToString()
-                                });
+                                    if (message.ReplyToMessage.From.Id.ToString() == config.IDBOT)
+                                    {
+                                        msgIN = new MessageIN
+                                        {
+                                            MessageId = message.MessageId.ToString(),
+                                            MessageText = message.Text,
+                                            UserFirstName = message.From.FirstName,
+                                            ReplayToMessageId = message.ReplyToMessage.MessageId.ToString(),
+                                            ReplayToMessageText = message.ReplyToMessage.Text
+                                        };
+                                        messageIN.Add(msgIN);
+                                    }
+
+                                    if (msgOUT.MessageId == msgIN.ReplayToMessageId)
+                                    {
+                                        if (issues.CorrectAnswer.ToLower().Trim() == msgIN.MessageText.ToLower().Trim())
+                                        {
+                                            await Bot.SendTextMessageAsync(message.Chat.Id, "Правильный ответ!", replyToMessageId: Convert.ToInt32(msgIN.MessageId));
+                                            msgOUT = null;
+                                            questionNumber.Remove(questionNumber[0]);
+                                            num++;
+                                            if (questionNumber.Count != 0)
+                                            {
+                                                issues = (IssuesClass)config.issues[questionNumber[0]];
+                                                msgOUT = await SendIssues(Bot, message.Chat.Id, num.ToString(), issues.QuestionText);
+                                                messageOUT.Add(msgOUT);
+                                            }
+                                            else
+                                            {
+                                                //msgOUT = null;
+                                            }
+                                        }
+                                    }
+                                }
+                            // проверка ответа
                         }
-                        questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопросов на игру
-                        if (questionNumber.Count == 0)
+                        //if (msgOUT is null)
                         {
-                            game = 0;
-                            end = true;
-                            return;
+                            // questionNumber.Remove(questionNumber[0]); // удаляем первый вопрос из списка вопросов на игру
+
+                            if (questionNumber.Count == 0)
+                            {
+                                game = 0;
+                                end = true;
+                            }
                         }
-                    }                    
+                    }                   
 
                     if (questionNumber.Count < 1 && game == 0 && end)
                     {
