@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace BotGame
@@ -10,7 +11,11 @@ namespace BotGame
 
         static void Main(string[] args)
         {
-            config = new ConfigSQL();            
+            config = new ConfigSQL();
+
+            messageOUT = new List<MessageOUT>();
+            messageIN = new List<MessageIN>();
+
             BW = new BackgroundWorker();
             BW.DoWork += BWBot;
             

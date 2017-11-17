@@ -2,8 +2,8 @@
 {
     public class MessageIN
     {
-        public string ChatId;
-        public string MessageId;
+        public long ChatId;
+        public int MessageId;
         public string UserId;
         public string UserName;
         //public string UserLastName;
