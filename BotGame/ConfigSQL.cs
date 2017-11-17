@@ -61,10 +61,12 @@ namespace BotGame
                     }
                 }
                 connection.Close();
+                Logger.Info("select settings from base");
             }
             catch (Exception e)
             {
                 connection.Close();
+                Logger.Error(e.Message);
             }
         }
 
@@ -82,8 +84,8 @@ namespace BotGame
                 {
                     if (!issues.ContainsKey(Convert.ToInt32(record["id"])))
                     {
-                        string complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? "-1" : record["complexity"].ToString();
-                        string typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? "-1" : record["type_answer"].ToString();
+                        int complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? -1 : Convert.ToInt32(record["complexity"]);
+                        int typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? -1 : Convert.ToInt32(record["type_answer"]);
                         issues.Add(Convert.ToInt32(record["id"]),
                             new IssuesClass
                             {
@@ -92,17 +94,19 @@ namespace BotGame
                                 PossibleAnswer_1 = record["possible_answer_1"].ToString(),
                                 PossibleAnswer_2 = record["possible_answer_2"].ToString(),
                                 PossibleAnswer_3 = record["possible_answer_3"].ToString(),
-                                Complexity = Convert.ToInt32(complexity),
+                                Complexity = complexity,
                                 Category = record["category"].ToString(),
-                                TypeAnswer = Convert.ToInt32(typeAnswer)
+                                TypeAnswer = typeAnswer
                             });
                     }
                 }
                 connection.Close();
+                Logger.Success("select issues from base");
             }
             catch (Exception e)
             {
                 connection.Close();
+                Logger.Error(e.Message);
             }
         }
     }

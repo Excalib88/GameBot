@@ -12,5 +12,6 @@ namespace BotGame
         public string MessageId;
         public string MessageText;
         public DateTime MmessageDate;
+        public int AttemptsAnswers = 0;
     }
 }
