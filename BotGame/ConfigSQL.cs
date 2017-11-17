@@ -12,7 +12,7 @@ namespace BotGame
         public Hashtable issues;
 
         private string key;
-        private string IdBot;// = "460362250";
+        private int IdBot;// = "460362250";
 
         public string KEY
         {
@@ -26,7 +26,7 @@ namespace BotGame
             }
         }
 
-        public string IDBOT
+        public int IDBOT
         {
             get
             {
@@ -57,7 +57,7 @@ namespace BotGame
                     }
                     if (record["key"].ToString() == "id_bot")
                     {
-                        IDBOT = record["value"].ToString();
+                        IDBOT = Convert.ToInt32(record["value"]);
                     }
                 }
                 connection.Close();

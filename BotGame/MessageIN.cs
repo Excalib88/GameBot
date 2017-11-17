@@ -13,6 +13,6 @@
 
         public int ReplayToMessageId;
         public string ReplayToMessageText;
-        public string ReplayToUserId;
+        public int ReplayToUserId;
     }
 }

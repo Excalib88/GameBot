@@ -81,6 +81,56 @@ namespace BotGame
             return msgOUT;
         }
 
+        static async Task<MessageOUT> SaveMsgOUT(Telegram.Bot.Types.Message message)
+        {
+            MessageOUT msgOUT = new MessageOUT
+            {
+                ChatId = message.Chat.Id,
+                MessageId = message.MessageId,
+                MessageText = message.Text,
+                MmessageDate = message.Date
+            };
+            messageOUT.Add(msgOUT);
+
+            return msgOUT;
+        }
+
+        static string GetUserName(Telegram.Bot.Types.Message message)
+        {
+            string userName = String.IsNullOrEmpty(message.From.LastName) ? message.From.FirstName : message.From.FirstName
+                        + " " + message.From.LastName;
+            return userName;
+        }
+
+        static void SaveMsgIn(Telegram.Bot.Types.Message message)
+        {
+            MessageIN msgIN;
+            if (message.ReplyToMessage == null)
+            {
+                msgIN = new MessageIN
+                {
+                    ChatId = message.Chat.Id,
+                    MessageId = message.MessageId,
+                    MessageText = message.Text,
+                    UserName = GetUserName(message)
+                };
+            }
+            else            
+            {
+                msgIN = new MessageIN
+                {
+                    ChatId = message.Chat.Id,
+                    MessageId = message.MessageId,
+                    MessageText = message.Text,
+                    UserName = GetUserName(message),
+                    ReplayToMessageId = message.ReplyToMessage.MessageId,
+                    ReplayToMessageText = message.ReplyToMessage.Text,
+                    ReplayToUserId = message.ReplyToMessage.From.Id
+                };
+            }
+                messageIN.Add(msgIN);            
+        }
+
         async static void BWBot(object sender, DoWorkEventArgs e)
         {
             var worker = sender as BackgroundWorker;
@@ -117,16 +167,7 @@ namespace BotGame
 
                     if (StartGame(message.Text))
                     {
-                        msgIN = new MessageIN
-                        {
-                            ChatId = message.Chat.Id,
-                            MessageId = message.MessageId,
-                            MessageText = message.Text,
-                            UserName = String.IsNullOrEmpty(message.From.LastName) ? message.From.FirstName : message.From.FirstName 
-                                + " " + message.From.LastName
-                        };
-                        messageIN.Add(msgIN);
-                        msgIN = null;
+                        SaveMsgIn(message);
 
                         Logger.Success("start game");
                         var countTemp = new int[] { 7, 10, 15 };
@@ -145,14 +186,7 @@ namespace BotGame
                         }
                         var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, 
                             "Игра началась!\nВсего вопросов: " + questionNumber.Count.ToString());
-                        msgOUT = new MessageOUT
-                        {
-                            ChatId = msgTemp.Chat.Id,
-                            MessageId = msgTemp.MessageId,
-                            MessageText = msgTemp.Text,
-                            MmessageDate = msgTemp.Date
-                        };
-                        messageOUT.Add(msgOUT);
+                        msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         game = true;                        
                         await Task.Delay(3000);
@@ -175,17 +209,7 @@ namespace BotGame
                             {
                                 if (message.ReplyToMessage != null)
                                 {
-                                    msgIN = new MessageIN
-                                    {
-                                        ChatId = message.Chat.Id,
-                                        MessageId = message.MessageId,
-                                        MessageText = message.Text,
-                                        UserName = String.IsNullOrEmpty(message.From.LastName) ? message.From.FirstName : message.From.FirstName 
-                                            + " " + message.From.LastName,
-                                        ReplayToMessageId = message.ReplyToMessage.MessageId,
-                                        ReplayToMessageText = message.ReplyToMessage.Text,
-                                        ReplayToUserId = message.ReplyToMessage.From.Id.ToString()
-                                    };
+                                    SaveMsgIn(message);
 
                                     if (msgIN.ReplayToUserId == config.IDBOT && msgOUT.MessageId == msgIN.ReplayToMessageId)
                                     {                                       
@@ -223,14 +247,7 @@ namespace BotGame
                                 replyToMessageId: msgIN.MessageId);
                             messageOUT.Add(msgOUT);
                             messageIN.Add(msgIN);
-                            msgOUT = new MessageOUT
-                            {
-                                ChatId = msgTemp.Chat.Id,
-                                MessageId = msgTemp.MessageId,
-                                MessageText = msgTemp.Text,
-                                MmessageDate = msgTemp.Date
-                            };
-                            messageOUT.Add(msgOUT);                            
+                            msgOUT = await SaveMsgOUT(msgTemp);
                             msgOUT = null;
                             questionNumber.Remove(questionNumber[0]);
                             num++;
@@ -255,14 +272,7 @@ namespace BotGame
                     if (questionNumber.Count < 1 && !game && end)
                     {
                         var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
-                        msgOUT = new MessageOUT
-                        {
-                            ChatId = msgTemp.Chat.Id,
-                            MessageId = msgTemp.MessageId,
-                            MessageText = msgTemp.Text,
-                            MmessageDate = msgTemp.Date
-                        };
-                        messageOUT.Add(msgOUT);
+                        msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         Logger.Success("end game");
                         config.issues = null; // очищаем список вопросов в конце игры
@@ -281,21 +291,13 @@ namespace BotGame
                         await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
                         await Bot.EditMessageTextAsync(msgOUT.ChatId, msgOUT.MessageId, msgOUT.MessageText, 
                             parseMode: ParseMode.Default, replyMarkup: null);
-
-                        string UserName = String.IsNullOrEmpty(message.From.LastName) ? ev.CallbackQuery.From.FirstName : ev.CallbackQuery.From.FirstName 
-                        + " " + ev.CallbackQuery.From.LastName;
+                        
                         var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ '" + 
-                            issues.CorrectAnswer + "' получен от " + UserName);
+                            issues.CorrectAnswer + "' получен от " + GetUserName(message));
+                        Logger.Success(GetUserName(message) + " correct unswer");
                         messageOUT.Add(msgOUT);
                         messageIN.Add(msgIN);
-                        msgOUT = new MessageOUT
-                        {
-                            ChatId = msgTemp.Chat.Id,
-                            MessageId = msgTemp.MessageId,
-                            MessageText = msgTemp.Text,
-                            MmessageDate = msgTemp.Date
-                        };
-                        messageOUT.Add(msgOUT);                        
+                        msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         questionNumber.Remove(questionNumber[0]);
                         num++;
@@ -319,14 +321,7 @@ namespace BotGame
                     if (questionNumber.Count < 1 && !game && end)
                     {
                         var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
-                        msgOUT = new MessageOUT
-                        {
-                            ChatId = msgTemp.Chat.Id,
-                            MessageId = msgTemp.MessageId,
-                            MessageText = msgTemp.Text,
-                            MmessageDate = msgTemp.Date
-                        };
-                        messageOUT.Add(msgOUT);
+                        msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         Logger.Success("end game");
                         config.issues = null; // очищаем список вопросов в конце игры
