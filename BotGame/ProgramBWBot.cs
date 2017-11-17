@@ -6,11 +6,8 @@ using System.Threading.Tasks;
 
 using Telegram.Bot;
 using Telegram.Bot.Args;
-using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineKeyboardButtons;
-using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.InputMessageContents;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace BotGame
@@ -45,13 +42,18 @@ namespace BotGame
             }
         }
 
-        static async Task<MessageOUT> SendIssuesReply(TelegramBotClient Bot, long chatId, string num, string questionText)
+        static async Task<MessageOUT> SendIssuesReply(TelegramBotClient Bot, long chatId, string num, IssuesClass issues)
         {
-            var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + questionText);
+            string txtQuest = issues.QuestionText;
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n\nВарианты ответов:\n" + issues.PossibleAnswer_1 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? "\n" + issues.PossibleAnswer_2 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n" + issues.PossibleAnswer_3 : "";
+
+            var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + txtQuest);
             MessageOUT msgOUT = new MessageOUT
             {
                 ChatId = msg.Chat.Id.ToString(),
-                MessageId = msg.MessageId.ToString(),
+                MessageId = msg.MessageId,
                 MessageText = msg.Text,
                 MmessageDate = msg.Date
             };
@@ -59,25 +61,33 @@ namespace BotGame
             return msgOUT;
         }
 
-        static async Task<MessageOUT> SendIssuesButton(TelegramBotClient Bot, long chatId, string num, string questionText)
+        static async Task<MessageOUT> SendIssuesButton(TelegramBotClient Bot, long chatId, string num, IssuesClass issues)
         {
-            // сменить варианты ответов на кнопки
-            var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + questionText);
+            string btn1 = !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? issues.PossibleAnswer_1 : "";
+            string btn2 = !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? issues.PossibleAnswer_2 : "";
+            string btn3 = !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? issues.PossibleAnswer_3 : "";
+
+            var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[]
+            {
+                new InlineKeyboardCallbackButton(btn1, "1"),
+                new InlineKeyboardCallbackButton(btn2, "2"),
+                new InlineKeyboardCallbackButton(btn3, "3"),
+            });
+
+            var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + issues.QuestionText,
+                replyMarkup: replyMarkup);
+
             MessageOUT msgOUT = new MessageOUT
             {
                 ChatId = msg.Chat.Id.ToString(),
-                MessageId = msg.MessageId.ToString(),
+                MessageId = msg.MessageId,
                 MessageText = msg.Text,
                 MmessageDate = msg.Date
-            };
+            };            
+
             Logger.Info(num.ToString() + " question submitted");
             return msgOUT;
         }
-
-        //static async Task CheckCorrectAnswer(TelegramBotClient Bot, )
-        //{
-
-        //}
 
         async static void BWBot(object sender, DoWorkEventArgs e)
         {
@@ -97,7 +107,7 @@ namespace BotGame
                 bool end = false;
                 bool answer = false;
 
-                Bot.OnUpdate += async (object su, Telegram.Bot.Args.UpdateEventArgs evu) =>
+                Bot.OnUpdate += async (object su, UpdateEventArgs evu) =>
                 {
                     // bool resultReplay = false;
                     if (evu.Update.CallbackQuery != null || evu.Update.InlineQuery != null)
@@ -115,7 +125,8 @@ namespace BotGame
                     }
 
                     if (StartGame(message.Text))
-                    {                        
+                    {
+                        Logger.Success("start game");
                         var countTemp = new int[] { 7, 10, 15 };
                         Random rndTemp = new Random();
                         int n = countTemp[rndTemp.Next(countTemp.Length)];
@@ -130,10 +141,8 @@ namespace BotGame
                             if (!questionNumber.Contains(val))
                                 questionNumber.Add(val);
                         }
-                        await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, начинается игра!\nВсего вопросов: " + questionNumber.Count.ToString());
-                        Logger.Success("start game");
-                        game = true;
-                        // System.Threading.Thread.Sleep(3000);
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Игра началась!\nВсего вопросов: " + questionNumber.Count.ToString());                        
+                        game = true;                        
                         await Task.Delay(3000);
                     }
 
@@ -147,16 +156,10 @@ namespace BotGame
                         {
                             if (msgOUT is null)
                             {
-                                num++;
-                                string txtQuest = issues.QuestionText;
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n\nВарианты ответов:\n" + issues.PossibleAnswer_1 : "";
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? "\n" + issues.PossibleAnswer_2 : "";
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n" + issues.PossibleAnswer_3 : "";
-
-                                msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), txtQuest);                                
+                                num++;                                
+                                msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issues);                                
                             }
-                            // проверка ответа
-                            if (msgOUT != null)
+                            else
                             {
                                 if (message.ReplyToMessage != null)
                                 {
@@ -165,7 +168,7 @@ namespace BotGame
                                         MessageId = message.MessageId.ToString(),
                                         MessageText = message.Text,
                                         UserName = String.IsNullOrEmpty(message.From.LastName) ? message.From.FirstName : message.From.FirstName + " " + message.From.LastName,
-                                        ReplayToMessageId = message.ReplyToMessage.MessageId.ToString(),
+                                        ReplayToMessageId = message.ReplyToMessage.MessageId,
                                         ReplayToMessageText = message.ReplyToMessage.Text,
                                         ReplayToUserId = message.ReplyToMessage.From.Id.ToString()
                                     };
@@ -186,25 +189,22 @@ namespace BotGame
                                             msgIN = null;
                                         }                                        
                                     }
-                                }// проверка ответа                                
+                                }                             
                             }
                         }// если ответ через реплай
                         else
                         // если ответ через кнопки
                         if (issues.TypeAnswer == 1)
                         {
-                            await Bot.SendTextMessageAsync(message.Chat.Id, "Позволь угадать, на какую кнопку вы нажали?");
-                            var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[]
+                            if (msgOUT is null)
                             {
-                            new InlineKeyboardCallbackButton("OK", "1"),
-                            new InlineKeyboardCallbackButton("не OK", "2"),
-                            new InlineKeyboardCallbackButton("приветы OK", "3"),
-                            });
+                                num++;
+                                msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);
+                            }
+                            else
+                            {
 
-                            await Task.Delay(500); // simulate longer running task
-
-                            await Bot.SendTextMessageAsync(message.Chat.Id, null,
-                                replyMarkup: replyMarkup);
+                            }                            
                         }// если ответ через кнопки
 
                         if (answer)
@@ -217,14 +217,11 @@ namespace BotGame
                             num++;
                             if (questionNumber.Count != 0)
                             {
-                                issues = (IssuesClass)config.issues[questionNumber[0]];
-
-                                string txtQuest = issues.QuestionText;
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n" + issues.PossibleAnswer_1 : "";
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? "\n" + issues.PossibleAnswer_2 : "";
-                                txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n" + issues.PossibleAnswer_3 : "";
-
-                                msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), txtQuest);
+                                issues = (IssuesClass)config.issues[questionNumber[0]];      
+                                if (issues.TypeAnswer == 0)
+                                    msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issues);
+                                if (issues.TypeAnswer == 1)
+                                    msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);
                             }
                             else
                             {
@@ -238,7 +235,7 @@ namespace BotGame
 
                     if (questionNumber.Count < 1 && !game && end)
                     {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, игра закончена!");
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
                         Logger.Success("end game");
                         config.issues = null; // очищаем список вопросов в конце игры
                         end = false;
@@ -258,20 +255,26 @@ namespace BotGame
                     if (ev.CallbackQuery.Data == "3")
                         result = true;
 
-                    if (ev.CallbackQuery.Data == "1")
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 1");
-                    }
-                    if (ev.CallbackQuery.Data == "2")
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 2");
-                    }
-                    if (ev.CallbackQuery.Data == "3")
-                    {
-                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 3");
-                    }
+                    //if (ev.CallbackQuery.Data == "1")
+                    //{
+                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 1");
+                    //}
+                    //if (ev.CallbackQuery.Data == "2")
+                    //{
+                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 2");
+                    //}
+                    //if (ev.CallbackQuery.Data == "3")
+                    //{
+                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 3");
+                    //}
                    
-                    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id); 
+                    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
+                    if (result)
+                    {
+                        await Bot.EditInlineMessageReplyMarkupAsync(ev.CallbackQuery.Id, replyMarkup: null);
+                    }
+                    // await Bot.
+                    //await Bot.DeleteMessageAsync(message.Chat.Id, msgOUT.MessageId);
                 };
 
                 Bot.StartReceiving();
@@ -279,12 +282,7 @@ namespace BotGame
             catch (Telegram.Bot.Exceptions.ApiRequestException ex)
             {
                 Logger.Error(ex.Message);
-            }
-
-            
+            }            
         }
-
-
-
     }
 }

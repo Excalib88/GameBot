@@ -11,7 +11,7 @@
         public string MessageText;
         public string MmessageDate;
 
-        public string ReplayToMessageId;
+        public int ReplayToMessageId;
         public string ReplayToMessageText;
         public string ReplayToUserId;
     }

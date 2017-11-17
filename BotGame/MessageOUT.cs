@@ -9,7 +9,7 @@ namespace BotGame
     public class MessageOUT
     {
         public string ChatId;
-        public string MessageId;
+        public int MessageId;
         public string MessageText;
         public DateTime MmessageDate;
         public int AttemptsAnswers = 0;
