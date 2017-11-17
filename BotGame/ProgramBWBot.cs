@@ -245,8 +245,7 @@ namespace BotGame
                 
                 Bot.OnCallbackQuery += async (object sc, CallbackQueryEventArgs ev) =>
                 {
-                    var message = ev.CallbackQuery.Message;
-                    //switch (ev.CallbackQuery.Data)
+                    var message = ev.CallbackQuery.Message;                    
                     bool result = false;
                     if (ev.CallbackQuery.Data == "1")
                         result = true;
@@ -254,27 +253,14 @@ namespace BotGame
                         result = true;
                     if (ev.CallbackQuery.Data == "3")
                         result = true;
-
-                    //if (ev.CallbackQuery.Data == "1")
-                    //{
-                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 1");
-                    //}
-                    //if (ev.CallbackQuery.Data == "2")
-                    //{
-                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 2");
-                    //}
-                    //if (ev.CallbackQuery.Data == "3")
-                    //{
-                    //    await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 3");
-                    //}
                    
                     await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
                     if (result)
                     {
-                        await Bot.EditInlineMessageReplyMarkupAsync(ev.CallbackQuery.Id, replyMarkup: null);
+                        await Bot.EditMessageTextAsync(msgOUT.ChatId, msgOUT.MessageId, msgOUT.MessageText, parseMode: ParseMode.Default,
+                            replyMarkup: null);
+                        //await Bot.EditInlineMessageReplyMarkupAsync(ev.CallbackQuery.InlineMessageId, replyMarkup: null);
                     }
-                    // await Bot.
-                    //await Bot.DeleteMessageAsync(message.Chat.Id, msgOUT.MessageId);
                 };
 
                 Bot.StartReceiving();
