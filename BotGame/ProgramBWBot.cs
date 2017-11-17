@@ -3,20 +3,26 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Telegram.Bot;
+using Telegram.Bot.Args;
+using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.InlineKeyboardButtons;
+using Telegram.Bot.Types.InlineQueryResults;
+using Telegram.Bot.Types.InputMessageContents;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace BotGame
 {
     partial class Program
-    {
-        static int getActivity = -1;
-        static int game = 0;
-        static bool GetActivity()
-        {
-            // проверяем активность
-            if (getActivity == -1)
+    {        
+        static bool game = false;
+
+        static bool StartGame(string text)
+        {            
+            if (text == @"/newgame" || text == @"/newgame@ucs13bot")
             {
-                getActivity = 0;
                 return true;
             }
             else
@@ -28,7 +34,7 @@ namespace BotGame
         static bool GAME()
         {
             // проверяем на игру
-            if (game == -1)
+            if (game)
             {
                 // game = 0;
                 return true;
@@ -96,20 +102,19 @@ namespace BotGame
                     // bool resultReplay = false;
                     if (evu.Update.CallbackQuery != null || evu.Update.InlineQuery != null)
                         return;
+                                        
+                    var message = evu.Update.Message;
 
-                    var update = evu.Update;
-                    var message = update.Message;
-
-                    if (message == null)
+                    if (message == null || message.Type != MessageType.TextMessage)
                         return;
 
-                    if ((message.Type == Telegram.Bot.Types.Enums.MessageType.TextMessage) 
-                        && (message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert@ucs13bot")))
+                    if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert@ucs13bot"))
+                        && (message.Chat.Type == ChatType.Private))
                     {
                         // добавление вопросов                        
                     }
 
-                    if (GetActivity())
+                    if (StartGame(message.Text))
                     {                        
                         var countTemp = new int[] { 7, 10, 15 };
                         Random rndTemp = new Random();
@@ -127,8 +132,9 @@ namespace BotGame
                         }
                         await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, начинается игра!\nВсего вопросов: " + questionNumber.Count.ToString());
                         Logger.Success("start game");
-                        game = -1;
-                        System.Threading.Thread.Sleep(3000);
+                        game = true;
+                        // System.Threading.Thread.Sleep(3000);
+                        await Task.Delay(3000);
                     }
 
                     if (GAME())
@@ -187,7 +193,18 @@ namespace BotGame
                         // если ответ через кнопки
                         if (issues.TypeAnswer == 1)
                         {
+                            await Bot.SendTextMessageAsync(message.Chat.Id, "Позволь угадать, на какую кнопку вы нажали?");
+                            var replyMarkup = new InlineKeyboardMarkup(new InlineKeyboardButton[]
+                            {
+                            new InlineKeyboardCallbackButton("OK", "1"),
+                            new InlineKeyboardCallbackButton("не OK", "2"),
+                            new InlineKeyboardCallbackButton("приветы OK", "3"),
+                            });
 
+                            await Task.Delay(500); // simulate longer running task
+
+                            await Bot.SendTextMessageAsync(message.Chat.Id, null,
+                                replyMarkup: replyMarkup);
                         }// если ответ через кнопки
 
                         if (answer)
@@ -211,7 +228,7 @@ namespace BotGame
                             }
                             else
                             {
-                                game = 0;
+                                game = false;
                                 end = true;
                             }
                             msgIN = null;
@@ -219,7 +236,7 @@ namespace BotGame
                         }                       
                     }
 
-                    if (questionNumber.Count < 1 && game == 0 && end)
+                    if (questionNumber.Count < 1 && !game && end)
                     {
                         await Bot.SendTextMessageAsync(message.Chat.Id, "Внимание, игра закончена!");
                         Logger.Success("end game");
@@ -228,12 +245,46 @@ namespace BotGame
                         // получение статистики
                     }
                 };
+                
+                Bot.OnCallbackQuery += async (object sc, CallbackQueryEventArgs ev) =>
+                {
+                    var message = ev.CallbackQuery.Message;
+                    //switch (ev.CallbackQuery.Data)
+                    bool result = false;
+                    if (ev.CallbackQuery.Data == "1")
+                        result = true;
+                    if (ev.CallbackQuery.Data == "2")
+                        result = true;
+                    if (ev.CallbackQuery.Data == "3")
+                        result = true;
+
+                    if (ev.CallbackQuery.Data == "1")
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 1");
+                    }
+                    if (ev.CallbackQuery.Data == "2")
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 2");
+                    }
+                    if (ev.CallbackQuery.Data == "3")
+                    {
+                        await Bot.SendTextMessageAsync(message.Chat.Id, "Вы нажали кнопку 3");
+                    }
+                   
+                    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id); 
+                };
+
                 Bot.StartReceiving();
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ex)
             {
                 Logger.Error(ex.Message);
             }
+
+            
         }
+
+
+
     }
 }

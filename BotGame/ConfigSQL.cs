@@ -84,8 +84,8 @@ namespace BotGame
                 {
                     if (!issues.ContainsKey(Convert.ToInt32(record["id"])))
                     {
-                        int complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? -1 : Convert.ToInt32(record["complexity"]);
-                        int typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? -1 : Convert.ToInt32(record["type_answer"]);
+                        int complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? 0 : Convert.ToInt32(record["complexity"]);
+                        int typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? 0 : Convert.ToInt32(record["type_answer"]);
                         issues.Add(Convert.ToInt32(record["id"]),
                             new IssuesClass
                             {
