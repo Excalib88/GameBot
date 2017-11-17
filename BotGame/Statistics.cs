@@ -6,7 +6,11 @@ using System.Threading.Tasks;
 
 namespace BotGame
 {
-    class Statistics
+    public class Statistics
     {
+        public Statistics(MessageOUT msgOUT, MessageIN msgIN)
+        {
+
+        }
     }
 }
