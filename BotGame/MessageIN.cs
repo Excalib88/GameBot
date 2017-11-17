@@ -1,4 +1,6 @@
-﻿namespace BotGame
+﻿using System;
+
+namespace BotGame
 {
     public class MessageIN
     {
@@ -9,7 +11,7 @@
         //public string UserLastName;
         public string UserUsername;
         public string MessageText;
-        public string MmessageDate;
+        public DateTime MmessageDate;
 
         public int ReplayToMessageId;
         public string ReplayToMessageText;
