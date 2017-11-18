@@ -167,7 +167,7 @@ namespace BotGame
                         msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         game = true;                        
-                        await Task.Delay(config.DeletionDelay);
+                        // await Task.Delay(config.DeletionDelay);
                     }
 
                     if (game)
@@ -197,7 +197,8 @@ namespace BotGame
                                             answer = true;
                                             Logger.Success(msgIN.UserName + " correct unswer");
                                             msgOUT.AnswerDate = msgIN.MmessageDate;
-                                            msgOUT.UserWin = GetUserName(message);
+                                            msgOUT.UserNameWin = GetUserName(message);
+                                            msgOUT.UserIdWin = msgIN.UserId;
                                         }
                                         else
                                         {
@@ -222,8 +223,9 @@ namespace BotGame
                         {
                             var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ!", 
                                 replyToMessageId: msgIN.MessageId);
-                            messageOUT.Add(msgOUT);
-                            messageIN.Add(msgIN);
+                            //messageOUT.Add(msgOUT);
+                            //messageIN.Add(msgIN);
+                            //var m = await SaveMsgIn(msgIN);
                             msgOUT = await SaveMsgOUT(msgTemp);
                             msgOUT = null;
                             questionNumber.Remove(questionNumber[0]);
@@ -266,7 +268,7 @@ namespace BotGame
                         var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ '" + 
                             issues.CorrectAnswer + "' получен от " + GetUserName(message));
                         Logger.Success(GetUserName(message) + " correct unswer");
-                        messageOUT.Add(msgOUT);
+                        //messageOUT.Add(msgOUT);
                         messageIN.Add(msgIN);
                         msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
@@ -315,8 +317,10 @@ namespace BotGame
             MessageOUT msgOUT = await SaveMsgOUT(msgTemp);
             msgOUT = null;
             Logger.Success("end game");
-            config.issues = null; // очищаем список вопросов в конце игры            
+            config.issues.Clear();
             // получение статистики
+            User user = Statistics.GetStatistics(messageOUT);
+            await Bot.SendTextMessageAsync(message.Chat.Id, "Победитель в игре - " + user.Name);
             await Task.Delay(config.DeletionDelay);
             DeleteMsg(Bot);
         }

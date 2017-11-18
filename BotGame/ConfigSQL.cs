@@ -74,7 +74,7 @@ namespace BotGame
                     }
                     if (record["key"].ToString() == "deletion_delay")
                     {
-                        DeletionDelay = Convert.ToInt32(record["deletion_delay"]);
+                        DeletionDelay = Convert.ToInt32(record["value"]);
                     }
                     //deletion_delay
                 }
@@ -108,7 +108,7 @@ namespace BotGame
                         issues.Add(Convert.ToInt32(record["id"]),
                             new IssuesClass
                             {
-                                QuestionText = record["question_text"].ToString(),
+                                QuestionText = record["question_text"].ToString().Replace("@BR",Environment.NewLine),
                                 CorrectAnswer = record["correct_answer"].ToString(),
                                 PossibleAnswer_1 = record["possible_answer_1"].ToString(),
                                 PossibleAnswer_2 = record["possible_answer_2"].ToString(),

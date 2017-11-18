@@ -9,7 +9,20 @@ namespace BotGame
         public string MessageText;
         public DateTime MmessageDate;
         public DateTime AnswerDate;
-        public string UserWin;
+        //public DateTime Time;
+        public string UserNameWin;
+        public int UserIdWin;
         public int AttemptsAnswers = 0;
+
+        User user;
+
+        public TimeSpan Time
+        {
+            //TimeSpan ts = newDate - oldDate;
+            get
+            {
+                return MmessageDate - AnswerDate;
+            }            
+        }
     }
 }
