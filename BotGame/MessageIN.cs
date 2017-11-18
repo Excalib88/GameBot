@@ -6,10 +6,10 @@ namespace BotGame
     {
         public long ChatId;
         public int MessageId;
-        public int UserId;
-        public string UserName;
+        //public int UserId;
+        //public string UserName;
         //public string UserLastName;
-        public string UserUsername;
+        //public string UserUsername;
         public string MessageText;
         public DateTime MmessageDate;
 
@@ -17,6 +17,6 @@ namespace BotGame
         public string ReplayToMessageText;
         public int ReplayToUserId;
 
-        User user;
+        public User userAttempt;
     }
 }

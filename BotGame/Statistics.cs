@@ -9,7 +9,7 @@ namespace BotGame
     {
         public static User GetStatistics(List<MessageOUT> messageOUT)
         {
-            List<MessageOUT> newMsg = messageOUT.FindAll(q => !String.IsNullOrEmpty(q.UserNameWin));
+            List<MessageOUT> newMsg = messageOUT.FindAll(q => !String.IsNullOrEmpty(q.userWin.Name));
 
             int max = messageOUT.Max(a => a.AttemptsAnswers);
             List<MessageOUT> resultAttemptsAnswers = newMsg.FindAll(a => a.AttemptsAnswers == max);
@@ -21,9 +21,9 @@ namespace BotGame
             Hashtable user = new Hashtable();
             foreach (MessageOUT m in newMsg)
             {
-                if (!String.IsNullOrEmpty(m.UserNameWin))
-                    if (!user.ContainsKey(m.UserIdWin))
-                        user.Add(m.UserIdWin, m.UserNameWin);
+                if (!String.IsNullOrEmpty(m.userWin.Name))
+                    if (!user.ContainsKey(m.userWin.Id))
+                        user.Add(m.userWin.Id, m.userWin.Name);
             }
 
             var id = user.Keys;
@@ -33,7 +33,7 @@ namespace BotGame
             User userQ = null;
             foreach (int i in id)
             {                
-                number = newMsg.Count(p => p.UserNameWin == user[i].ToString());
+                number = newMsg.Count(p => p.userWin.Name == user[i].ToString());
                 if (number > r)
                 {
                     userQ = new User

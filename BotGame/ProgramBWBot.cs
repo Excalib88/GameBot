@@ -77,8 +77,9 @@ namespace BotGame
                 ChatId = message.Chat.Id,
                 MessageId = message.MessageId,
                 MessageText = message.Text,
-                MmessageDate = message.Date
-            };
+                MmessageDate = message.Date,
+                userWin = new User()
+        };
             messageOUT.Add(msgOUT);
             return msgOUT;
         }
@@ -98,11 +99,11 @@ namespace BotGame
             {
                 ChatId = message.Chat.Id,
                 MessageId = message.MessageId,
-                MessageText = message.Text,
-                UserName = GetUserName(message),
+                MessageText = message.Text,                
                 ReplayToMessageId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.MessageId,
                 ReplayToMessageText = message.ReplyToMessage == null ? "" : message.ReplyToMessage.Text,
-                ReplayToUserId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.From.Id
+                ReplayToUserId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.From.Id,
+                userAttempt = new User { Id = message.From.Id, Name = GetUserName(message), Username = message.From.Username }
             };
             
             messageIN.Add(msgIN);
@@ -195,15 +196,15 @@ namespace BotGame
                                         {
                                             // принимаем ответ как верный
                                             answer = true;
-                                            Logger.Success(msgIN.UserName + " correct unswer");
+                                            Logger.Success(msgIN.userAttempt.Name + " correct unswer");
                                             msgOUT.AnswerDate = msgIN.MmessageDate;
-                                            msgOUT.UserNameWin = GetUserName(message);
-                                            msgOUT.UserIdWin = msgIN.UserId;
+                                            //msgOUT.UserNameWin = GetUserName(message);
+                                            msgOUT.userWin = msgIN.userAttempt;
                                         }
                                         else
                                         {
                                             // считаем ответ как попытку ответить
-                                            Logger.Info(msgIN.UserName + " incorrect unswer");
+                                            Logger.Info(msgIN.userAttempt.Name + " incorrect unswer");
                                             msgOUT.AttemptsAnswers++;
                                             msgIN = null;
                                         }                                        
@@ -271,6 +272,7 @@ namespace BotGame
                         //messageOUT.Add(msgOUT);
                         messageIN.Add(msgIN);
                         msgOUT = await SaveMsgOUT(msgTemp);
+                        msgOUT.userWin = msgIN.userAttempt;
                         msgOUT = null;
                         questionNumber.Remove(questionNumber[0]);
                         num++;
