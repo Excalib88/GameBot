@@ -13,6 +13,19 @@ namespace BotGame
 
         private string key;
         private int IdBot;// = "460362250";
+        private int deletionDelay;
+
+        public int DeletionDelay
+        {
+            get
+            {
+                return deletionDelay;
+            }
+            private set
+            {
+                deletionDelay = value;
+            }
+        }
 
         public string KEY
         {
@@ -59,6 +72,11 @@ namespace BotGame
                     {
                         IDBOT = Convert.ToInt32(record["value"]);
                     }
+                    if (record["key"].ToString() == "deletion_delay")
+                    {
+                        DeletionDelay = Convert.ToInt32(record["deletion_delay"]);
+                    }
+                    //deletion_delay
                 }
                 connection.Close();
                 Logger.Info("select settings from base");
@@ -78,6 +96,7 @@ namespace BotGame
 
                 SQLiteCommand command = new SQLiteCommand("select id, question_text," +
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
+                    "possible_answer_4, possible_answer_5," +
                     "complexity, category, type_answer from 'issues';", connection);
                 SQLiteDataReader reader = command.ExecuteReader();
                 foreach (DbDataRecord record in reader)
@@ -94,6 +113,8 @@ namespace BotGame
                                 PossibleAnswer_1 = record["possible_answer_1"].ToString(),
                                 PossibleAnswer_2 = record["possible_answer_2"].ToString(),
                                 PossibleAnswer_3 = record["possible_answer_3"].ToString(),
+                                PossibleAnswer_4 = record["possible_answer_4"].ToString(),
+                                PossibleAnswer_5 = record["possible_answer_5"].ToString(),
                                 Complexity = complexity,
                                 Category = record["category"].ToString(),
                                 TypeAnswer = typeAnswer

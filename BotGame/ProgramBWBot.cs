@@ -35,10 +35,12 @@ namespace BotGame
             TelegramBotClient Bot, long chatId, string num, IssuesClass issues)
         {
             string txtQuest = issues.QuestionText;
-            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n\nВарианты ответов:\n" + 
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n\nВарианты ответов:\n1 - " + 
                 issues.PossibleAnswer_1 : "";
-            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? "\n" + issues.PossibleAnswer_2 : "";
-            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n" + issues.PossibleAnswer_3 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? "\n2 - " + issues.PossibleAnswer_2 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n3 - " + issues.PossibleAnswer_3 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_4) ? "\n4 - " + issues.PossibleAnswer_4 : "";
+            txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_5) ? "\n5 - " + issues.PossibleAnswer_5 : "";
 
             var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + txtQuest);
             MessageOUT msgOUT = await SaveMsgOUT(msg);
@@ -165,7 +167,7 @@ namespace BotGame
                         msgOUT = await SaveMsgOUT(msgTemp);
                         msgOUT = null;
                         game = true;                        
-                        await Task.Delay(3000);
+                        await Task.Delay(config.DeletionDelay);
                     }
 
                     if (game)
@@ -315,23 +317,39 @@ namespace BotGame
             Logger.Success("end game");
             config.issues = null; // очищаем список вопросов в конце игры            
             // получение статистики
-            await Task.Delay(120000);
+            await Task.Delay(config.DeletionDelay);
             DeleteMsg(Bot);
         }
 
         static async void DeleteMsg(TelegramBotClient Bot)
         {
+            Logger.Info("start delete message");
             foreach (MessageOUT msgDel in messageOUT)
             {
                 if (msgDel != null)
-                    await Bot.DeleteMessageAsync(msgDel.ChatId, msgDel.MessageId);
+                    try
+                    {
+                        await Bot.DeleteMessageAsync(msgDel.ChatId, msgDel.MessageId);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e.Message);
+                    }
             }
 
             foreach (MessageIN msgDel in messageIN)
             {
                 if (msgDel != null)
+                    try
+                    { 
                     await Bot.DeleteMessageAsync(msgDel.ChatId, msgDel.MessageId);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e.Message);
+                    }
             }
+            Logger.Info("end delete message");
         }
     }
 }
