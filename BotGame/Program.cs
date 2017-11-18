@@ -19,7 +19,7 @@ namespace BotGame
             BW = new BackgroundWorker();
             BW.DoWork += BWBot;
             
-            string key = config.KEY;
+            string key = config.TOKEN;
             if (!String.IsNullOrEmpty(key) && !BW.IsBusy)
             {
                 BW.RunWorkerAsync(key);

@@ -7,35 +7,37 @@ namespace BotGame
 {
     public class ConfigSQL
     {
-        SQLiteConnection connection;
-        private const string PATH_BASE = "BotGame.db";
-        public Hashtable issues;
+        private SQLiteConnection connection;
 
-        private string key;
-        private int IdBot;// = "460362250";
-        private int deletionDelay;
+        private const string PATH_BASE = "BotGame.db";
+        private const string NAME_DELETION_DELAY = "deletion_delay";
+        private const string NAME_TOKEN = "token";
+        private const string NAME_ID_BOT = "id_bot";
+        
+        private Hashtable settings;
+        public Hashtable issues;
 
         public int DeletionDelay
         {
             get
             {
-                return deletionDelay;
+                return Convert.ToInt32(settings[NAME_DELETION_DELAY]);
             }
             private set
             {
-                deletionDelay = value;
+                settings[NAME_DELETION_DELAY] = value;
             }
         }
 
-        public string KEY
+        public string TOKEN
         {
             get
             {
-                return key;
+                return settings[NAME_TOKEN].ToString();
             }
             private set
             {
-                key = value;
+                settings[NAME_TOKEN] = value;
             }
         }
 
@@ -43,19 +45,20 @@ namespace BotGame
         {
             get
             {
-                return IdBot;
+                return Convert.ToInt32(settings[NAME_ID_BOT]);
             }
             private set
             {
-                IdBot = value;
+                settings[NAME_ID_BOT] = value;
             }
         }
 
         public ConfigSQL()
         {
+            settings = new Hashtable();
             issues = new Hashtable();
             connection = new SQLiteConnection(string.Format("Data Source={0};", PATH_BASE));
-
+            Logger.Info("select settings from base");
             try
             {
                 connection.Open();
@@ -64,22 +67,19 @@ namespace BotGame
                 SQLiteDataReader readerKey = commandKey.ExecuteReader();
                 foreach (DbDataRecord record in readerKey)
                 {
-                    if (record["key"].ToString() == "token")
-                    {
-                        KEY = record["value"].ToString();
-                    }
-                    if (record["key"].ToString() == "id_bot")
-                    {
-                        IDBOT = Convert.ToInt32(record["value"]);
-                    }
-                    if (record["key"].ToString() == "deletion_delay")
-                    {
-                        DeletionDelay = Convert.ToInt32(record["value"]);
-                    }
-                    //deletion_delay
+                    if (!settings.ContainsKey(record["key"].ToString()))
+                        settings.Add(record["key"].ToString(), record["value"]);
                 }
-                connection.Close();
-                Logger.Info("select settings from base");
+                connection.Close();                
+
+                foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT })
+                {
+                    if (!settings.ContainsKey(name))
+                    {                        
+                        Logger.Warn("Не найден настроечный параметр " + name);
+                    }
+                }
+                
             }
             catch (Exception e)
             {

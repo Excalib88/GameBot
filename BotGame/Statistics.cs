@@ -23,7 +23,7 @@ namespace BotGame
             {
                 if (!String.IsNullOrEmpty(m.userWin.Name))
                     if (!user.ContainsKey(m.userWin.Id))
-                        user.Add(m.userWin.Id, m.userWin.Name);
+                        user.Add(m.userWin.Id, m.userWin. Name);
             }
 
             var id = user.Keys;
