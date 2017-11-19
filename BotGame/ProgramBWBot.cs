@@ -73,14 +73,14 @@ namespace BotGame
             var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + issues.QuestionText,
                 replyMarkup: replyMarkup);
 
-            MessageOUT msgOUT = await SaveMsgOUT(msg, issues.Id);
+            MessageOUT msgOUTtemp = await SaveMsgOUT(msg, issues.Id);
             Logger.Info(num.ToString() + " question submitted");
             return msgOUT;
         }
 
         static async Task<MessageOUT> SaveMsgOUT(Telegram.Bot.Types.Message message, int issuesId)
         {
-            MessageOUT msgOUT = new MessageOUT
+            MessageOUT msgOUTtemp = new MessageOUT
             {
                 QuestionId = issuesId,
                 ChatId = message.Chat.Id,
@@ -102,9 +102,7 @@ namespace BotGame
 
         static async Task<MessageIN> SaveMsgIn(Telegram.Bot.Types.Message message)
         {
-            MessageIN msgIN;
-
-            msgIN = new MessageIN
+            MessageIN msgINtemp = new MessageIN
             {
                 ChatId = message.Chat.Id,
                 MessageId = message.MessageId,
