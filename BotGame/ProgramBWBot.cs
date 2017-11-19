@@ -13,8 +13,15 @@ namespace BotGame
 {
     partial class Program
     {
+        static MessageOUT msgOUT = null;
+        static MessageIN msgIN = null;
+        static IssuesClass issues = null;
         static List<MessageOUT> messageOUT = new List<MessageOUT>();
         static List<MessageIN> messageIN = new List<MessageIN>();
+        static List<int> questionNumber;
+        static bool answer = false;
+        static int num = 0;
+        static bool end = false;
 
         static bool game = false;
 
@@ -120,13 +127,7 @@ namespace BotGame
                 Bot = new TelegramBotClient(key);
                 await Bot.SetWebhookAsync("");
 
-                List<int> questionNumber = new List<int>();
-                MessageOUT msgOUT = null;
-                MessageIN msgIN = null;                
-                int num = 0;
-                bool end = false;
-                bool answer = false;
-                IssuesClass issues = null;
+                questionNumber = new List<int>();                                                                     
 
                 Bot.OnUpdate += async (object su, UpdateEventArgs evu) =>
                 {
@@ -166,7 +167,7 @@ namespace BotGame
                         }
                         var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, 
                             "Игра началась!\nВсего вопросов: " + questionNumber.Count.ToString());
-                        msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
+                        msgOUT = await SaveMsgOUT(msgTemp, 0);
                         msgOUT = null;
                         game = true;                        
                         // await Task.Delay(config.DeletionDelay);
@@ -199,8 +200,12 @@ namespace BotGame
                                             answer = true;
                                             Logger.Success(msgIN.userAttempt.Name + " correct unswer");
                                             msgOUT.AnswerDate = msgIN.MmessageDate;
-                                            //msgOUT.UserNameWin = GetUserName(message);
                                             msgOUT.userWin = msgIN.userAttempt;
+                                            var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ!",
+                                                replyToMessageId: msgIN.MessageId);
+                                            msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
+                                            msgOUT = null;
+                                            await Answer(message);
                                         }
                                         else
                                         {
@@ -219,35 +224,7 @@ namespace BotGame
                         {
                             num++;
                             msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);                                                   
-                        }// если ответ через кнопки
-
-                        if (answer)
-                        {
-                            var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ!", 
-                                replyToMessageId: msgIN.MessageId);
-                            //messageOUT.Add(msgOUT);
-                            //messageIN.Add(msgIN);
-                            //var m = await SaveMsgIn(msgIN);
-                            msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
-                            msgOUT = null;
-                            questionNumber.Remove(questionNumber[0]);
-                            num++;
-                            if (questionNumber.Count != 0)
-                            {
-                                issues = (IssuesClass)config.issues[questionNumber[0]];      
-                                if (issues.TypeAnswer == 0)
-                                    msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issues);
-                                if (issues.TypeAnswer == 1)
-                                    msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);
-                            }
-                            else
-                            {
-                                game = false;
-                                end = true;
-                            }
-                            msgIN = null;
-                            answer = false;
-                        }                       
+                        }// если ответ через кнопки                       
                     }
 
                     if (questionNumber.Count < 1 && !game && end)
@@ -259,7 +236,9 @@ namespace BotGame
                 
                 Bot.OnCallbackQuery += async (object sc, CallbackQueryEventArgs ev) =>
                 {
-                    var message = ev.CallbackQuery.Message;                    
+                    // найти, где хранится - кто нажал на кнопку
+                    var message = ev.CallbackQuery.Message;
+                    msgIN = await SaveMsgIn(message);
 
                     if (issues.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
                     {
@@ -267,31 +246,20 @@ namespace BotGame
                         await Bot.EditMessageTextAsync(msgOUT.ChatId, msgOUT.MessageId, msgOUT.MessageText, 
                             parseMode: ParseMode.Default, replyMarkup: null);
                         
+                        msgOUT.userWin = msgIN.userAttempt;
+
                         var msgTemp = await Bot.SendTextMessageAsync(msgOUT.ChatId, "Правильный ответ '" + 
                             issues.CorrectAnswer + "' получен от " + GetUserName(message));
-                        Logger.Success(GetUserName(message) + " correct unswer");
-                        //messageOUT.Add(msgOUT);
-                        messageIN.Add(msgIN);
                         msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
-                        msgOUT.userWin = msgIN.userAttempt;
                         msgOUT = null;
-                        questionNumber.Remove(questionNumber[0]);
-                        num++;
-                        if (questionNumber.Count != 0)
-                        {
-                            issues = (IssuesClass)config.issues[questionNumber[0]];
-                            if (issues.TypeAnswer == 0)
-                                msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issues);
-                            if (issues.TypeAnswer == 1)
-                                msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);
-                        }
-                        else
-                        {
-                            game = false;
-                            end = true;
-                        }
+
+                        await Answer(message);
+                    }
+                    else
+                    {
+                        Logger.Info(msgIN.userAttempt.Name + " incorrect unswer");
+                        msgOUT.AttemptsAnswers++;
                         msgIN = null;
-                        answer = false;
                     }
 
                     if (questionNumber.Count < 1 && !game && end)
@@ -309,9 +277,25 @@ namespace BotGame
             }            
         }
 
-        static async void Answer()
-        {
-
+        static async Task Answer(Telegram.Bot.Types.Message message)
+        {           
+            questionNumber.Remove(questionNumber[0]);
+            num++;
+            if (questionNumber.Count != 0)
+            {
+                issues = (IssuesClass)config.issues[questionNumber[0]];
+                if (issues.TypeAnswer == 0)
+                    msgOUT = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issues);
+                if (issues.TypeAnswer == 1)
+                    msgOUT = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issues);
+            }
+            else
+            {
+                game = false;
+                end = true;
+            }
+            msgIN = null;
+            answer = false;
         }
 
         static async void EndGame(Telegram.Bot.Types.Message message)
@@ -319,10 +303,9 @@ namespace BotGame
             var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
             MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);            
             msgOUT = null;
-            Logger.Success("end game");
-            config.issues.Clear();
-            // получение статистики
+            Logger.Success("end game");            
             User user = Statistics.GetStatistics(messageOUT, config);
+            config.issues.Clear();
             await Bot.SendTextMessageAsync(message.Chat.Id, "Победитель в игре - " + user.Name);
             await Task.Delay(config.DeletionDelay);
             DeleteMsg();
@@ -341,6 +324,7 @@ namespace BotGame
                     catch (Exception e)
                     {
                         Logger.Error(e.Message);
+                        Logger.Warn(msgDel.MessageText);
                     }
             }
 
@@ -354,8 +338,11 @@ namespace BotGame
                     catch (Exception e)
                     {
                         Logger.Error(e.Message);
+                        Logger.Warn(msgDel.MessageText);
                     }
             }
+            messageOUT.Clear();
+            messageIN.Clear();
             Logger.Info("end delete message");
         }
 

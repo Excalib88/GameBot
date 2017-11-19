@@ -11,25 +11,27 @@ namespace BotGame
         {
             List<MessageOUT> newMsg = messageOUT.FindAll(q => !String.IsNullOrEmpty(q.userWin.Name));
 
-            int max = messageOUT.Max(a => a.AttemptsAnswers);
-            List<MessageOUT> resultAttemptsAnswers = newMsg.FindAll(a => a.AttemptsAnswers == max);
+            int max = messageOUT.Max(a => a.AttemptsAnswers);            
 
-            string attemptsAnswers = "";
+            string idQuestionAttempts = "";
             if (max > 1)
+            {
+                List<MessageOUT> resultAttemptsAnswers = newMsg.FindAll(a => a.AttemptsAnswers == max);
                 foreach (MessageOUT m in resultAttemptsAnswers)
                 {
                     Program.SendMsg(m.ChatId, "Вопрос с наибольшим количеством попыток:\n" + m.MessageText);
-                    attemptsAnswers += m.QuestionId.ToString();
+                    idQuestionAttempts += m.QuestionId.ToString() + ", ";
                 }
+            }
 
             TimeSpan time = newMsg.Max(a => a.Time);
             List<MessageOUT> resultTime = newMsg.FindAll(a => a.Time == time);
 
-            string resTime = "";
+            string idQuestionTime = "";
             foreach (MessageOUT m in resultTime)
             {
                 Program.SendMsg(m.ChatId, "Вопрос с самым длительным временем ответа:\n" + m.MessageText);
-                resTime += m.QuestionId;
+                idQuestionTime += m.QuestionId + ", ";
             }
 
             Hashtable user = new Hashtable();
@@ -58,7 +60,7 @@ namespace BotGame
                     r = number;
                 }
             }
-            config.SaveStatistics(userQ, attemptsAnswers, resTime);
+            config.SaveStatistics(userQ, idQuestionAttempts, idQuestionTime);
             return userQ;
         }
     }

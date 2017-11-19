@@ -148,16 +148,17 @@ namespace BotGame
 
         public void SaveStatistics(User user, string questionAttempt, string questionTime)
         {
+            string username = !String.IsNullOrEmpty(user.Username) ? user.Username : "";
             try
             {
                 connection.Open();
                 SQLiteCommand command1 = new SQLiteCommand("insert into 'statistics' (date_game, user_win_id, user_win_name, " +
-                    "username_win_telegram, question_attempt, question_time) " +
-                    "select '" + DateTime.Now.ToString() + ", " + user.Id + ", '" + user.Name + "', "+ user.Username 
-                    + "@question_attempt, @question_time" + ";", connection);
+                    "username_win_telegram, id_question_attempt, id_question_time) " +
+                    "select '" + DateTime.Now.ToString() + "', " + user.Id + ", '" + user.Name + "', '"+ username
+                    + "', '" + questionAttempt + "', " + "'" + questionTime + "';", connection);
 
-                command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
-                command1.Parameters.AddWithValue("@question_time", questionTime);
+                //command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
+                //command1.Parameters.AddWithValue("@question_time", questionTime);
 
                 command1.ExecuteNonQuery();
                 connection.Close();
