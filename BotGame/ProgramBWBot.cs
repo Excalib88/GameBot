@@ -351,7 +351,7 @@ namespace BotGame
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e.Message);
+                        Logger.Error(e.Message); 
                         Logger.Warn(msgDel.MessageText);
                     }
             }
@@ -374,6 +374,7 @@ namespace BotGame
         {
             //await Bot.SendTextMessageAsync(message.Chat.Id, "Введите текст вопроса");
             insert = true;
+            Logger.Info("Пользователь " + GetUserName(message) + " добавляет новый вопрос");
             if (newQuestion == null)
                 newQuestion = new IssuesClass();
 
@@ -387,6 +388,7 @@ namespace BotGame
                 if (!String.IsNullOrEmpty(message.Text))
                 {
                     newQuestion.QuestionText = message.Text.Replace("\n", "@BR");
+                    Logger.Info("Введенный вопрос: " + message.Text);
                     flag = 1;
                 }               
             }
@@ -399,6 +401,7 @@ namespace BotGame
             {
                 if (int.TryParse(message.Text, out count))
                 {
+                    Logger.Info("Количество вариантов ответа: " + message.Text);
                     //count = Convert.ToInt32(message.Text);
                     flag = 3;
                     //return;
@@ -413,7 +416,7 @@ namespace BotGame
             if (flag == 3)
             {
                 if (countQ <= count)
-                {                    
+                {                   
                     switch (countQ)
                     {
                         case 1:
@@ -442,6 +445,7 @@ namespace BotGame
                                 break;
                             }
                     }
+                    Logger.Info("Введенный ответ: " + message.Text);
                     if (countQ < count)
                     {
                         await SendInsertMsg(message.Chat.Id, "Введите " + (countQ + 1).ToString() + " вариант ответа", 3);
@@ -450,8 +454,17 @@ namespace BotGame
                     }
                     else
                     {
-                        await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", 4);
-                        return;
+                        if (count != 1)
+                        {
+                            await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", 4);
+                            return;
+                        }
+                        else
+                        {
+                            flag = 6;
+                            newQuestion.CorrectAnswer = newQuestion.PossibleAnswer_1;
+                            newQuestion.TypeAnswer = 0;
+                        }                     
                     }
                 }                
             }
@@ -462,6 +475,7 @@ namespace BotGame
                 {
                     //count = Convert.ToInt32(message.Text);
                     newQuestion.CorrectAnswer = n.ToString();
+                    Logger.Info("Верный вариант ответа: " + message.Text);
                     flag = 5;
                 }
                 else
@@ -483,6 +497,7 @@ namespace BotGame
                 {
                     //count = Convert.ToInt32(message.Text);
                     newQuestion.TypeAnswer = n;
+                    Logger.Info("Тип ответа: " + message.Text);
                     flag = 7;
                 }
                 else
@@ -506,13 +521,17 @@ namespace BotGame
                 txtQuest += newQuestion.TypeAnswer == 0 ? "реплая" : "кнопок";
                 txtQuest += "\n\nЕсли все верно - введите 1, иначе 0";
 
+                Logger.Info(txtQuest);
+
                 await SendInsertMsg(message.Chat.Id, txtQuest, 8);
                 return;
             }
 
             if (flag == 8)
             {
+                Logger.Info("insert newQuestion in base");
                 // insert in base
+                newQuestion = new IssuesClass();
                 insert = false;
             }
         }
