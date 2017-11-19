@@ -77,6 +77,7 @@ namespace BotGame
                 connection.Open();
 
                 SQLiteCommand commandKey = new SQLiteCommand("select key, value from 'settings';", connection);
+                Logger.Info(commandKey.CommandText);
                 SQLiteDataReader readerKey = commandKey.ExecuteReader();
                 foreach (DbDataRecord record in readerKey)
                 {
@@ -111,6 +112,7 @@ namespace BotGame
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
                     "possible_answer_4, possible_answer_5," +
                     "complexity, category, type_answer from 'issues';", connection);
+                Logger.Info(command.CommandText);
                 SQLiteDataReader reader = command.ExecuteReader();
                 foreach (DbDataRecord record in reader)
                 {
@@ -155,10 +157,10 @@ namespace BotGame
                 SQLiteCommand command1 = new SQLiteCommand("insert into 'statistics' (date_game, user_win_id, user_win_name, " +
                     "username_win_telegram, id_question_attempt, id_question_time) " +
                     "select '" + DateTime.Now.ToString() + "', " + user.Id + ", '" + user.Name + "', '"+ username
-                    + "', '" + questionAttempt + "', " + "'" + questionTime + "';", connection);
-
-                //command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
-                //command1.Parameters.AddWithValue("@question_time", questionTime);
+                    + "', @question_attempt, " + "@question_time;", connection);
+                Logger.Info(command1.CommandText);
+                command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
+                command1.Parameters.AddWithValue("@question_time", questionTime);
 
                 command1.ExecuteNonQuery();
                 connection.Close();

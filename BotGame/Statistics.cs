@@ -33,6 +33,8 @@ namespace BotGame
                 Program.SendMsg(m.ChatId, "Вопрос с самым длительным временем ответа:\n" + m.MessageText);
                 idQuestionTime += m.QuestionId + ", ";
             }
+            
+            Program.SendMsg(m.ChatId, "Вопрос с самым длительным временем ответа:\n" + m.MessageText);
 
             Hashtable user = new Hashtable();
             foreach (MessageOUT m in newMsg)
