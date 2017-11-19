@@ -18,9 +18,9 @@ namespace BotGame
 
         static bool game = false;
 
-        static bool StartGame(string text)
+        static bool StartGame(string text, int idUser)
         {            
-            if ((text == @"/newgame" || text == @"/newgame@ucs13bot") && !game)
+            if ((text == @"/newgame" || text == @"/newgame@ucs13bot") && !game && idUser == config.ADMIN)
             {
                 game = true;
                 return true;
@@ -43,7 +43,7 @@ namespace BotGame
             txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_5) ? "\n5 - " + issues.PossibleAnswer_5 : "";
 
             var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + txtQuest);
-            MessageOUT msgOUT = await SaveMsgOUT(msg);
+            MessageOUT msgOUT = await SaveMsgOUT(msg, issues.Id);
             Logger.Info(num.ToString() + " question submitted");
             return msgOUT;
         }
@@ -65,15 +65,16 @@ namespace BotGame
             var msg = await Bot.SendTextMessageAsync(chatId, "Вопрос " + num + "\n" + issues.QuestionText,
                 replyMarkup: replyMarkup);
 
-            MessageOUT msgOUT = await SaveMsgOUT(msg);
+            MessageOUT msgOUT = await SaveMsgOUT(msg, issues.Id);
             Logger.Info(num.ToString() + " question submitted");
             return msgOUT;
         }
 
-        static async Task<MessageOUT> SaveMsgOUT(Telegram.Bot.Types.Message message)
+        static async Task<MessageOUT> SaveMsgOUT(Telegram.Bot.Types.Message message, int issuesId)
         {
             MessageOUT msgOUT = new MessageOUT
             {
+                QuestionId = issuesId,
                 ChatId = message.Chat.Id,
                 MessageId = message.MessageId,
                 MessageText = message.Text,
@@ -116,7 +117,7 @@ namespace BotGame
             var key = e.Argument as String;
             try
             {
-                var Bot = new TelegramBotClient(key);
+                Bot = new TelegramBotClient(key);
                 await Bot.SetWebhookAsync("");
 
                 List<int> questionNumber = new List<int>();
@@ -144,7 +145,7 @@ namespace BotGame
                         // добавление вопросов                        
                     }
 
-                    if (StartGame(message.Text))
+                    if (StartGame(message.Text, message.From.Id))
                     {
                         var m = await SaveMsgIn(message);
 
@@ -165,7 +166,7 @@ namespace BotGame
                         }
                         var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, 
                             "Игра началась!\nВсего вопросов: " + questionNumber.Count.ToString());
-                        msgOUT = await SaveMsgOUT(msgTemp);
+                        msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
                         msgOUT = null;
                         game = true;                        
                         // await Task.Delay(config.DeletionDelay);
@@ -227,7 +228,7 @@ namespace BotGame
                             //messageOUT.Add(msgOUT);
                             //messageIN.Add(msgIN);
                             //var m = await SaveMsgIn(msgIN);
-                            msgOUT = await SaveMsgOUT(msgTemp);
+                            msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
                             msgOUT = null;
                             questionNumber.Remove(questionNumber[0]);
                             num++;
@@ -252,7 +253,7 @@ namespace BotGame
                     if (questionNumber.Count < 1 && !game && end)
                     {
                         end = false;
-                        EndGame(Bot, message);
+                        EndGame(message);
                     }
                 };
                 
@@ -271,7 +272,7 @@ namespace BotGame
                         Logger.Success(GetUserName(message) + " correct unswer");
                         //messageOUT.Add(msgOUT);
                         messageIN.Add(msgIN);
-                        msgOUT = await SaveMsgOUT(msgTemp);
+                        msgOUT = await SaveMsgOUT(msgTemp, issues.Id);
                         msgOUT.userWin = msgIN.userAttempt;
                         msgOUT = null;
                         questionNumber.Remove(questionNumber[0]);
@@ -296,7 +297,7 @@ namespace BotGame
                     if (questionNumber.Count < 1 && !game && end)
                     {
                         end = false;
-                        EndGame(Bot, message);
+                        EndGame(message);
                     }
                 };
 
@@ -308,26 +309,26 @@ namespace BotGame
             }            
         }
 
-        static async void Answer(TelegramBotClient Bot)
+        static async void Answer()
         {
 
         }
 
-        static async void EndGame(TelegramBotClient Bot, Telegram.Bot.Types.Message message)
+        static async void EndGame(Telegram.Bot.Types.Message message)
         {
             var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
-            MessageOUT msgOUT = await SaveMsgOUT(msgTemp);
+            MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);            
             msgOUT = null;
             Logger.Success("end game");
             config.issues.Clear();
             // получение статистики
-            User user = Statistics.GetStatistics(messageOUT);
+            User user = Statistics.GetStatistics(messageOUT, config);
             await Bot.SendTextMessageAsync(message.Chat.Id, "Победитель в игре - " + user.Name);
             await Task.Delay(config.DeletionDelay);
-            DeleteMsg(Bot);
+            DeleteMsg();
         }
 
-        static async void DeleteMsg(TelegramBotClient Bot)
+        static async void DeleteMsg()
         {
             Logger.Info("start delete message");
             foreach (MessageOUT msgDel in messageOUT)
@@ -356,6 +357,13 @@ namespace BotGame
                     }
             }
             Logger.Info("end delete message");
+        }
+
+        static async public void SendMsg(long chat_id, string text)
+        {
+            var msgTemp = await Bot.SendTextMessageAsync(chat_id, text);
+            MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);
+            msgOUT = null;
         }
     }
 }

@@ -7,6 +7,7 @@ namespace BotGame
         public long ChatId;
         public int MessageId;
         public string MessageText;
+        public int QuestionId;
         public DateTime MmessageDate;
         public DateTime AnswerDate;
         //public DateTime Time;

@@ -13,7 +13,8 @@ namespace BotGame
         private const string NAME_DELETION_DELAY = "deletion_delay";
         private const string NAME_TOKEN = "token";
         private const string NAME_ID_BOT = "id_bot";
-        
+        private const string NAME_ADMIN = "admin";
+
         private Hashtable settings;
         public Hashtable issues;
 
@@ -53,6 +54,18 @@ namespace BotGame
             }
         }
 
+        public int ADMIN
+        {
+            get
+            {
+                return Convert.ToInt32(settings[NAME_ADMIN]);
+            }
+            private set
+            {
+                settings[NAME_ADMIN] = value;
+            }
+        }
+
         public ConfigSQL()
         {
             settings = new Hashtable();
@@ -72,7 +85,7 @@ namespace BotGame
                 }
                 connection.Close();                
 
-                foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT })
+                foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT, NAME_ADMIN })
                 {
                     if (!settings.ContainsKey(name))
                     {                        
@@ -103,11 +116,13 @@ namespace BotGame
                 {
                     if (!issues.ContainsKey(Convert.ToInt32(record["id"])))
                     {
+                        int id = Convert.ToInt32(record["id"]);
                         int complexity = String.IsNullOrEmpty(record["complexity"].ToString()) ? 0 : Convert.ToInt32(record["complexity"]);
                         int typeAnswer = String.IsNullOrEmpty(record["type_answer"].ToString()) ? 0 : Convert.ToInt32(record["type_answer"]);
                         issues.Add(Convert.ToInt32(record["id"]),
                             new IssuesClass
                             {
+                                Id = id,
                                 QuestionText = record["question_text"].ToString().Replace("@BR",Environment.NewLine),
                                 CorrectAnswer = record["correct_answer"].ToString(),
                                 PossibleAnswer_1 = record["possible_answer_1"].ToString(),
@@ -123,6 +138,30 @@ namespace BotGame
                 }
                 connection.Close();
                 Logger.Success("select issues from base");
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);
+            }
+        }
+
+        public void SaveStatistics(User user, string questionAttempt, string questionTime)
+        {
+            try
+            {
+                connection.Open();
+                SQLiteCommand command1 = new SQLiteCommand("insert into 'statistics' (date_game, user_win_id, user_win_name, " +
+                    "username_win_telegram, question_attempt, question_time) " +
+                    "select '" + DateTime.Now.ToString() + ", " + user.Id + ", '" + user.Name + "', "+ user.Username 
+                    + "@question_attempt, @question_time" + ";", connection);
+
+                command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
+                command1.Parameters.AddWithValue("@question_time", questionTime);
+
+                command1.ExecuteNonQuery();
+                connection.Close();
+                Logger.Success("save statistics in base");
             }
             catch (Exception e)
             {

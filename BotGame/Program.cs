@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Telegram.Bot;
 
 namespace BotGame
 {
     partial class Program
     {
         static BackgroundWorker BW;
-        static ConfigSQL config;        
+        static ConfigSQL config;
+        static TelegramBotClient Bot;
 
         static void Main(string[] args)
         {

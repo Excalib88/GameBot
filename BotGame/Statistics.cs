@@ -7,17 +7,31 @@ namespace BotGame
 {
     public static class Statistics
     {
-        public static User GetStatistics(List<MessageOUT> messageOUT)
+        public static User GetStatistics(List<MessageOUT> messageOUT, ConfigSQL config)
         {
             List<MessageOUT> newMsg = messageOUT.FindAll(q => !String.IsNullOrEmpty(q.userWin.Name));
 
             int max = messageOUT.Max(a => a.AttemptsAnswers);
             List<MessageOUT> resultAttemptsAnswers = newMsg.FindAll(a => a.AttemptsAnswers == max);
 
+            string attemptsAnswers = "";
+            if (max > 1)
+                foreach (MessageOUT m in resultAttemptsAnswers)
+                {
+                    Program.SendMsg(m.ChatId, "Вопрос с наибольшим количеством попыток:\n" + m.MessageText);
+                    attemptsAnswers += m.QuestionId.ToString();
+                }
+
             TimeSpan time = newMsg.Max(a => a.Time);
             List<MessageOUT> resultTime = newMsg.FindAll(a => a.Time == time);
 
-            // int numberUnvaccinated = pets.Count(p => p.Vaccinated == false);
+            string resTime = "";
+            foreach (MessageOUT m in resultTime)
+            {
+                Program.SendMsg(m.ChatId, "Вопрос с самым длительным временем ответа:\n" + m.MessageText);
+                resTime += m.QuestionId;
+            }
+
             Hashtable user = new Hashtable();
             foreach (MessageOUT m in newMsg)
             {
@@ -44,9 +58,7 @@ namespace BotGame
                     r = number;
                 }
             }
-            // int resultUser = messageOUT.Count(a => a.UserIdWin);
-
-            // config.SaveStatistics();
+            config.SaveStatistics(userQ, attemptsAnswers, resTime);
             return userQ;
         }
     }

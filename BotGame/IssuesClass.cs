@@ -2,7 +2,7 @@
 {
     public class IssuesClass
     {
-        //int Id { get; }
+        public int Id;
         public string QuestionText;
         public string CorrectAnswer;
         public string PossibleAnswer_1;
