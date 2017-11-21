@@ -355,6 +355,7 @@ namespace BotGame
             await Task.Delay(config.DeletionDelay);
             DeleteMsg(message);
             gameObject.num = 0;
+            gameChat.Remove(message.Chat.Id);
         }
 
         static async void DeleteMsg(Telegram.Bot.Types.Message message)
@@ -502,6 +503,7 @@ namespace BotGame
                         {
                             insertOptions.flag = 6;
                             insertOptions.newQuestion.CorrectAnswer = insertOptions.newQuestion.PossibleAnswer_1;
+                            insertOptions.newQuestion.PossibleAnswer_1 = "";
                             insertOptions.newQuestion.TypeAnswer = 0;
                         }                     
                     }
@@ -532,7 +534,7 @@ namespace BotGame
                 return;
             }
             else
-            if (insertOptions.flag == 5 && insertOptions.count == 1)
+            if (insertOptions.flag == 6 && insertOptions.count == 1)
             {
                 insertOptions.newQuestion.TypeAnswer = 0;
                 Logger.Info(userInsertName + "тип ответа: реплай");

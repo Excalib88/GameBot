@@ -172,7 +172,7 @@ namespace BotGame
                 SQLiteCommand command1 = new SQLiteCommand("insert into issues (question_text, correct_answer, " +
                     "possible_answer_1, possible_answer_2, possible_answer_3, possible_answer_4, possible_answer_5, " +
                     "type_answer)" +
-                    "select @question_text, " + issues.CorrectAnswer.ToString() + ", " +
+                    "select @question_text, '" + issues.CorrectAnswer.ToString() + "', " +
                     "@possible_answer_1, @possible_answer_2, @possible_answer_3, @possible_answer_4, @possible_answer_5, " +
                      issues.TypeAnswer.ToString() + ";", connection);
                 Logger.Info(command1.CommandText);
