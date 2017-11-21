@@ -10,10 +10,10 @@ namespace BotGame
         public IssuesClass issuesObject;
         public List<MessageOUT> messageOUTobject;
         public List<MessageIN> messageINobject;
-        public List<int> questionNumber;
+        public List<int> questionNumber = new List<int>();
         public int num;
-        public bool end;
-        public bool game;
+        public bool end = false;
+        public bool game = false;
         public Hashtable issues;
     }
 }

@@ -200,11 +200,11 @@ namespace BotGame
 
         public string SelectCountGame(long ChatId)
         {
-            string result = "";
+            string result = "0";
             try
             {
                 connection.Open();
-                SQLiteCommand command1 = new SQLiteCommand("select count (*) as count from 'statistics' " +
+                SQLiteCommand command1 = new SQLiteCommand("select count (chat_id) as count from 'statistics' " +
                     "where chat_id = '" + ChatId.ToString() + "';", connection);
                 Logger.Info(command1.CommandText);
 
@@ -214,15 +214,13 @@ namespace BotGame
                     result = record["count"].ToString();                    
                 }
                 connection.Close();
-                Logger.Success("select count game in base");
+                Logger.Success("select count game in base: " + result);
             }
             catch (Exception e)
             {
                 connection.Close();
                 Logger.Error(e.Message);
             }
-            if (result == "0")
-                result = "1";
             return result;
         }
 

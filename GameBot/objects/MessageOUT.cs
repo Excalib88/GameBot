@@ -22,7 +22,7 @@ namespace BotGame
             //TimeSpan ts = newDate - oldDate;
             get
             {
-                return MmessageDate - AnswerDate;
+                return AnswerDate - MmessageDate;
             }            
         }
     }
