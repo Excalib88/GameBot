@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using Telegram.Bot;
 
@@ -13,9 +12,6 @@ namespace BotGame
 
         static void Main(string[] args)
         {
-            //PdfParse pdfParse = new PdfParse();
-            //pdfParse.test();
-
             config = new ConfigSQL();
 
             BW = new BackgroundWorker();

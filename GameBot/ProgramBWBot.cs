@@ -153,9 +153,7 @@ namespace BotGame
             try
             {
                 Bot = new TelegramBotClient(key);
-                await Bot.SetWebhookAsync("");
-
-                //questionNumber = new List<int>();                                                                     
+                await Bot.SetWebhookAsync("");                                                             
 
                 Bot.OnUpdate += async (object su, UpdateEventArgs evu) =>
                 {                    
@@ -190,8 +188,7 @@ namespace BotGame
                     string textStart = "";
                     if (message.Text == @"/newgame" || message.Text == @"/newgame@ucs13bot")
                         if (StartGame(message))
-                        {
-                            //gameObject = (Game)gameChat[message.Chat.Id];
+                        {                            
                             var m = await SaveMsgIn(message);
                             gameObject = (Game)gameChat[message.Chat.Id];
                             Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
@@ -210,14 +207,14 @@ namespace BotGame
                                     gameObject.questionNumber.Add(val);
                             }
                             Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
-                            textStart += "Игра началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
+                            string count = config.SelectCountGame(message.Chat.Id);
+                            textStart += "Игра №" + count + " началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
                             gameObject.game = true;
                         }
 
                     if (gameObject.game)
                     {
                         // получаем вопрос
-                        //gameObject = (Game)gameChat[message.Chat.Id];
                         gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];
                         
                         // если ответ через реплай
@@ -302,8 +299,7 @@ namespace BotGame
                     }
                     else
                     {
-                        Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect unswer");
-                        //msgOUT.AttemptsAnswers++;
+                        Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect unswer");                        
                         gameObject.msgINobject = null;
                     }
 
@@ -410,9 +406,7 @@ namespace BotGame
             string userInsertName = "Пользователь " + GetUserName(message) + ": ";
             insert = true;
             InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
-
-            //IssuesClass newQuestion = insertOptions.newQuestion;
-
+            
             if (insertOptions.newQuestion == null)
                 insertOptions.newQuestion = new IssuesClass();
             
@@ -451,10 +445,8 @@ namespace BotGame
                 }
                 else
                 {
-                    Logger.Info(userInsertName + "количество вариантов ответа: " + message.Text);
-                    //count = Convert.ToInt32(message.Text);
-                    insertOptions.flag = 3;
-                    //return;
+                    Logger.Info(userInsertName + "количество вариантов ответа: " + message.Text);                    
+                    insertOptions.flag = 3;                    
                 }
             }
 
@@ -526,8 +518,7 @@ namespace BotGame
                     return;
                 }
                 else
-                {
-                    //count = Convert.ToInt32(message.Text);
+                {                    
                     insertOptions.newQuestion.CorrectAnswer = n.ToString();
                     Logger.Info(userInsertName + "верный вариант ответа: " + message.Text);
                     insertOptions.flag = 5;
@@ -552,8 +543,7 @@ namespace BotGame
             {
                 bool res = int.TryParse(message.Text, out int n);
                 if (res)
-                {
-                    //count = Convert.ToInt32(message.Text);
+                {                    
                     insertOptions.newQuestion.TypeAnswer = n;
                     Logger.Info(userInsertName + "тип ответа: " + message.Text);
                     insertOptions.flag = 7;
@@ -601,7 +591,6 @@ namespace BotGame
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Ошибка при добавлении вопроса");
                     Logger.Info(userInsertName + "insert false");
                 }
-                //insertOptions.newQuestion = new IssuesClass();
                 insert = false;
                 insertUser.Remove(message.Chat.Id);
             }

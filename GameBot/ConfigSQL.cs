@@ -17,8 +17,8 @@ namespace BotGame
         public const string RULE_INSERT = "rule_insert";
 
         private Hashtable settings;
-        //public Hashtable issues;
 
+        #region getset
         public int RuleInsert
         {
             get
@@ -78,6 +78,7 @@ namespace BotGame
                 settings[NAME_ADMIN] = value;
             }
         }
+        #endregion getset
 
         public ConfigSQL()
         {
@@ -195,6 +196,34 @@ namespace BotGame
                 Logger.Error(e.Message);
                 return false;
             }
+        }
+
+        public string SelectCountGame(long ChatId)
+        {
+            string result = "";
+            try
+            {
+                connection.Open();
+                SQLiteCommand command1 = new SQLiteCommand("select count (*) as count from 'statistics' " +
+                    "where chat_id = '" + ChatId.ToString() + "';", connection);
+                Logger.Info(command1.CommandText);
+
+                SQLiteDataReader readerKey = command1.ExecuteReader();
+                foreach (DbDataRecord record in readerKey)
+                {
+                    result = record["count"].ToString();                    
+                }
+                connection.Close();
+                Logger.Success("select count game in base");
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);
+            }
+            if (result == "0")
+                result = "1";
+            return result;
         }
 
         public void SaveStatistics(User user, string questionAttempt, string questionTime, long ChatId, string ChatName)
