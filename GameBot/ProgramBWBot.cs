@@ -19,10 +19,9 @@ namespace BotGame
         static bool insert = false;
         private static Hashtable insertUser = new Hashtable();
 
-        static bool StartGame(string text, Telegram.Bot.Types.Message message)
+        static bool StartGame(Telegram.Bot.Types.Message message)
         {
-            if (!gameChat.ContainsKey(message.Chat.Id)
-                && (text == @"/newgame" || text == @"/newgame@ucs13bot") 
+            if (!gameChat.ContainsKey(message.Chat.Id)                
                 && message.From.Id == config.ADMIN)
             {
                 gameChat.Add(message.Chat.Id,
@@ -168,7 +167,7 @@ namespace BotGame
                     if (message == null || message.Type != MessageType.TextMessage)
                         return;
 
-                    Game gameObject = null;
+                    Game gameObject = (Game)gameChat[message.Chat.Id];
 
                     if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert@ucs13bot")) || insert)
                         if (message.Chat.Type == ChatType.Private)
@@ -189,34 +188,36 @@ namespace BotGame
                         }
 
                     string textStart = "";
-                    if (StartGame(message.Text, message))
-                    {
-                        gameObject = (Game)gameChat[message.Chat.Id];
-                        var m = await SaveMsgIn(message);
-
-                        Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
-                        var countTemp = new int[] { 7, 10, 15 };
-                        Random rndTemp = new Random();
-                        int n = countTemp[rndTemp.Next(countTemp.Length)];
-
-                        // получаем список вопросов
-                        gameObject.issues = config.SelectQuestion();
-                        var KeyId = gameObject.issues.Keys;                        
-                        var vals = KeyId.Cast<int>().ToArray();                        
-                        for (int i = 0; i < n; i++)
+                    if (message.Text == @"/newgame" || message.Text == @"/newgame@ucs13bot")
+                        if (StartGame(message))
                         {
-                            var val = vals[rndTemp.Next(vals.Length)];
-                            if (!gameObject.questionNumber.Contains(val))
-                                gameObject.questionNumber.Add(val);
+                            //gameObject = (Game)gameChat[message.Chat.Id];
+                            var m = await SaveMsgIn(message);
+                            gameObject = (Game)gameChat[message.Chat.Id];
+                            Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
+                            var countTemp = new int[] { 7, 10, 15 };
+                            Random rndTemp = new Random();
+                            int n = countTemp[rndTemp.Next(countTemp.Length)];
+
+                            // получаем список вопросов
+                            gameObject.issues = config.SelectQuestion();
+                            var KeyId = gameObject.issues.Keys;
+                            var vals = KeyId.Cast<int>().ToArray();
+                            for (int i = 0; i < n; i++)
+                            {
+                                var val = vals[rndTemp.Next(vals.Length)];
+                                if (!gameObject.questionNumber.Contains(val))
+                                    gameObject.questionNumber.Add(val);
+                            }
+                            Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
+                            textStart += "Игра началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
+                            gameObject.game = true;
                         }
-                        Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
-                        textStart += "Игра началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
-                        gameObject.game = true;                                                
-                    }
 
                     if (gameObject.game)
                     {
                         // получаем вопрос
+                        //gameObject = (Game)gameChat[message.Chat.Id];
                         gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];
                         
                         // если ответ через реплай
@@ -352,7 +353,7 @@ namespace BotGame
             Game gameObject = (Game)gameChat[message.Chat.Id];
 
             Logger.Success("chat " + message.Chat.Id.ToString() + " end game");            
-            string win = Statistics.GetStatistics(gameObject.messageOUTobject, config);
+            string win = Statistics.GetStatistics(gameObject.messageOUTobject, config, message.Chat.Id, message.Chat.FirstName);
             gameObject.issues.Clear();
             await Bot.SendTextMessageAsync(message.Chat.Id, win);
             await Task.Delay(config.DeletionDelay);

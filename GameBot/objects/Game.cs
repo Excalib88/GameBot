@@ -13,7 +13,7 @@ namespace BotGame
         public List<int> questionNumber;
         public int num;
         public bool end;
-        public bool game = false;
+        public bool game;
         public Hashtable issues;
     }
 }

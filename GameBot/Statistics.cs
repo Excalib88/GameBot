@@ -2,13 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace BotGame
 {
     public static class Statistics
     {
-        public static string GetStatistics(List<MessageOUT> messageOUT, ConfigSQL config)
+        public static string GetStatistics(List<MessageOUT> messageOUT, ConfigSQL config, long ChatId, string ChatName)
         {
             string textMsg = "Конец игры\n\n";
             List<MessageOUT> newMsg = messageOUT.FindAll(q => !String.IsNullOrEmpty(q.userWin.Name));
@@ -62,7 +61,7 @@ namespace BotGame
                     userQ = new User
                     {
                         Id = i,
-                        Name = user[i].ToString()
+                        Name = user[i].ToString(),
                     };
                     r = number;
                 }                
@@ -83,7 +82,7 @@ namespace BotGame
                 win += u.Name + ": количество правильных ответов " + u.countCorrectAnswer.ToString() + "\n";
             }
 
-            config.SaveStatistics(userQ, idQuestionAttempts, idQuestionTime);
+            config.SaveStatistics(userQ, idQuestionAttempts, idQuestionTime, ChatId, ChatName);
             
             return win;
         }
