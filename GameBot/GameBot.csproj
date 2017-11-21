@@ -122,6 +122,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigSQL.cs" />
+    <Compile Include="objects\Game.cs" />
     <Compile Include="objects\InsertOptions.cs" />
     <Compile Include="objects\IssuesClass.cs" />
     <Compile Include="Logger.cs" />

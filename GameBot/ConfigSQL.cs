@@ -17,7 +17,7 @@ namespace BotGame
         public const string RULE_INSERT = "rule_insert";
 
         private Hashtable settings;
-        public Hashtable issues;
+        //public Hashtable issues;
 
         public int RuleInsert
         {
@@ -81,8 +81,7 @@ namespace BotGame
 
         public ConfigSQL()
         {
-            settings = new Hashtable();
-            issues = new Hashtable();
+            settings = new Hashtable();            
             connection = new SQLiteConnection(string.Format("Data Source={0};", PATH_BASE));
             Logger.Info("select settings from base");
             try
@@ -115,8 +114,9 @@ namespace BotGame
             }
         }
 
-        public void SelectQuestion()
+        public Hashtable SelectQuestion()
         {
+            Hashtable issues = new Hashtable();
             try
             {
                 connection.Open();
@@ -159,6 +159,8 @@ namespace BotGame
                 connection.Close();
                 Logger.Error(e.Message);
             }
+
+            return issues;
         }
 
         public bool InsertIssues(IssuesClass issues, int userId, string userName)

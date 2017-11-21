@@ -18,9 +18,6 @@ namespace BotGame
 
             config = new ConfigSQL();
 
-            messageOUTobject = new List<MessageOUT>();
-            messageINobject = new List<MessageIN>();
-
             BW = new BackgroundWorker();
             BW.DoWork += BWBot;
             

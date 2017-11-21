@@ -13,25 +13,31 @@ using Telegram.Bot.Types.ReplyMarkups;
 namespace BotGame
 {
     partial class Program
-    {        
-        static MessageOUT msgOUTobject = null;
-        static MessageIN msgINobject = null;
-        static IssuesClass issuesObject = null;
-        static List<MessageOUT> messageOUTobject = new List<MessageOUT>();
-        static List<MessageIN> messageINobject = new List<MessageIN>();
-        static List<int> questionNumber;
-        static int num = 0;
-        static bool end = false;
-        static bool game = false;
+    {
+        private static Hashtable gameChat = new Hashtable();
 
         static bool insert = false;
         private static Hashtable insertUser = new Hashtable();
 
-        static bool StartGame(string text, int idUser)
-        {            
-            if ((text == @"/newgame" || text == @"/newgame@ucs13bot") && !game && idUser == config.ADMIN)
+        static bool StartGame(string text, Telegram.Bot.Types.Message message)
+        {
+            if (!gameChat.ContainsKey(message.Chat.Id)
+                && (text == @"/newgame" || text == @"/newgame@ucs13bot") 
+                && message.From.Id == config.ADMIN)
             {
-                game = true;
+                gameChat.Add(message.Chat.Id,
+                    new Game
+                    {
+                        msgOUTobject = null,
+                        msgINobject = null,
+                        issuesObject = null,
+                        messageOUTobject = new List<MessageOUT>(),
+                        messageINobject = new List<MessageIN>(),
+                        questionNumber = new List<int>(),
+                        num = 0,
+                        end = false,
+                        game = true
+                    });
                 return true;
             }
             else
@@ -43,6 +49,8 @@ namespace BotGame
         static async Task<MessageOUT> SendIssuesReply(
             TelegramBotClient Bot, long chatId, string num, IssuesClass issues, string textStart = "", int replayMsgId = 0)
         {
+            Game gameObject = (Game)gameChat[chatId];
+
             string txtQuest = issues.QuestionText;
             txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? "\n\nВарианты ответов:\n1 - " + 
                 issues.PossibleAnswer_1 : "";
@@ -56,19 +64,21 @@ namespace BotGame
                 msg = await Bot.SendTextMessageAsync(chatId, textStart + "Вопрос " + num + "\n" + txtQuest);
             else
                 msg = await Bot.SendTextMessageAsync(chatId, textStart + "Вопрос " + num + "\n" + txtQuest,
-            replyToMessageId: msgINobject.MessageId);
+            replyToMessageId: gameObject.msgINobject.MessageId);
 
             if (!String.IsNullOrEmpty(textStart))
                 msg.Text = "Вопрос " + num + "\n" + txtQuest;
 
             MessageOUT msgOUTtemp = await SaveMsgOUT(msg, issues.Id);
-            Logger.Info(num.ToString() + " question submitted");
+            Logger.Info("chat " + chatId.ToString() + " " + num.ToString() + " question submitted");
             return msgOUTtemp;
         }
 
         static async Task<MessageOUT> SendIssuesButton(
             TelegramBotClient Bot, long chatId, string num, IssuesClass issues, string textStart = "", int replayMsgId = 0)
         {
+            Game gameObject = (Game)gameChat[chatId];
+
             string btn1 = !String.IsNullOrEmpty(issues.PossibleAnswer_1) ? issues.PossibleAnswer_1 : "";
             string btn2 = !String.IsNullOrEmpty(issues.PossibleAnswer_2) ? issues.PossibleAnswer_2 : "";
             string btn3 = !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? issues.PossibleAnswer_3 : "";
@@ -86,15 +96,17 @@ namespace BotGame
                     replyMarkup: replyMarkup);
             else
                 msg = await Bot.SendTextMessageAsync(chatId, textStart + "Вопрос " + num + "\n" + issues.QuestionText,
-                    replyMarkup: replyMarkup, replyToMessageId: msgINobject.MessageId);
+                    replyMarkup: replyMarkup, replyToMessageId: gameObject.msgINobject.MessageId);
 
             MessageOUT msgOUTtemp = await SaveMsgOUT(msg, issues.Id);
-            Logger.Info(num.ToString() + " question submitted");
+            Logger.Info("chat " + chatId.ToString() + " " + num.ToString() + " question submitted");
             return msgOUTtemp;
         }
 
         static async Task<MessageOUT> SaveMsgOUT(Telegram.Bot.Types.Message message, int issuesId)
         {
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+
             MessageOUT msgOUTtemp = new MessageOUT
             {
                 QuestionId = issuesId,
@@ -104,7 +116,7 @@ namespace BotGame
                 MmessageDate = message.Date,
                 userWin = new User()
         };
-            messageOUTobject.Add(msgOUTtemp);
+            gameObject.messageOUTobject.Add(msgOUTtemp);
             return msgOUTtemp;
         }
 
@@ -117,6 +129,8 @@ namespace BotGame
 
         static async Task<MessageIN> SaveMsgIn(Telegram.Bot.Types.Message message)
         {
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+
             MessageIN msgINtemp = new MessageIN
             {
                 ChatId = message.Chat.Id,
@@ -128,8 +142,8 @@ namespace BotGame
                 ReplayToUserId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.From.Id,
                 userAttempt = new User { Id = message.From.Id, Name = GetUserName(message), Username = message.From.Username }
             };
-            
-            messageINobject.Add(msgINtemp);
+
+            gameObject.messageINobject.Add(msgINtemp);
             return msgINtemp;
         }
 
@@ -142,7 +156,7 @@ namespace BotGame
                 Bot = new TelegramBotClient(key);
                 await Bot.SetWebhookAsync("");
 
-                questionNumber = new List<int>();                                                                     
+                //questionNumber = new List<int>();                                                                     
 
                 Bot.OnUpdate += async (object su, UpdateEventArgs evu) =>
                 {                    
@@ -153,6 +167,8 @@ namespace BotGame
 
                     if (message == null || message.Type != MessageType.TextMessage)
                         return;
+
+                    Game gameObject = null;
 
                     if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert@ucs13bot")) || insert)
                         if (message.Chat.Type == ChatType.Private)
@@ -168,76 +184,71 @@ namespace BotGame
                                         newQuestion = new IssuesClass()
                                     });
                             }
-                            //else
-                            //{
-
-                            //}
-                            // добавление вопросов  
-                                await Insert(message);
-                                return;
-                            
+                            await Insert(message);
+                            return;                            
                         }
 
                     string textStart = "";
-                    if (StartGame(message.Text, message.From.Id))
+                    if (StartGame(message.Text, message))
                     {
+                        gameObject = (Game)gameChat[message.Chat.Id];
                         var m = await SaveMsgIn(message);
 
-                        Logger.Success("start game");
+                        Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
                         var countTemp = new int[] { 7, 10, 15 };
                         Random rndTemp = new Random();
                         int n = countTemp[rndTemp.Next(countTemp.Length)];
 
                         // получаем список вопросов
-                        config.SelectQuestion();
-                        var KeyId = config.issues.Keys;                        
+                        gameObject.issues = config.SelectQuestion();
+                        var KeyId = gameObject.issues.Keys;                        
                         var vals = KeyId.Cast<int>().ToArray();                        
                         for (int i = 0; i < n; i++)
                         {
                             var val = vals[rndTemp.Next(vals.Length)];
-                            if (!questionNumber.Contains(val))
-                                questionNumber.Add(val);
+                            if (!gameObject.questionNumber.Contains(val))
+                                gameObject.questionNumber.Add(val);
                         }
-                        Logger.Info("Всего вопросов: " + questionNumber.Count.ToString());
-                        textStart += "Игра началась!\nВсего вопросов: " + questionNumber.Count.ToString() + "\n\n";
-                        game = true;                                                
+                        Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
+                        textStart += "Игра началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
+                        gameObject.game = true;                                                
                     }
 
-                    if (game)
+                    if (gameObject.game)
                     {
                         // получаем вопрос
-                        issuesObject = (IssuesClass)config.issues[questionNumber[0]];
-
+                        gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];
+                        
                         // если ответ через реплай
-                        if (issuesObject.TypeAnswer == 0)
+                        if (gameObject.issuesObject.TypeAnswer == 0)
                         {
-                            if (msgOUTobject is null)
+                            if (gameObject.msgOUTobject is null)
                             {
-                                num++;                                
-                                msgOUTobject = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issuesObject, textStart);
+                                gameObject.num++;
+                                gameObject.msgOUTobject = await SendIssuesReply(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, textStart);
                                 textStart = "";
                             }
                             else
                             {
                                 if (message.ReplyToMessage != null)
                                 {
-                                    msgINobject = await SaveMsgIn(message);
+                                    gameObject.msgINobject = await SaveMsgIn(message);
 
-                                    if (msgINobject.ReplayToUserId == config.IDBOT && msgOUTobject.MessageId == msgINobject.ReplayToMessageId)
+                                    if (gameObject.msgINobject.ReplayToUserId == config.IDBOT && gameObject.msgOUTobject.MessageId == gameObject.msgINobject.ReplayToMessageId)
                                     {
-                                        msgOUTobject.AttemptsAnswers++;
-                                        if (issuesObject.CorrectAnswer.ToLower().Trim() == msgINobject.MessageText.ToLower().Trim())
+                                        gameObject.msgOUTobject.AttemptsAnswers++;
+                                        if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == gameObject.msgINobject.MessageText.ToLower().Trim())
                                         {
-                                            Logger.Success(msgINobject.userAttempt.Name + " correct unswer");
-                                            msgOUTobject.AnswerDate = msgINobject.MmessageDate;
-                                            msgOUTobject.userWin = msgINobject.userAttempt;
+                                            Logger.Success("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " correct unswer");
+                                            gameObject.msgOUTobject.AnswerDate = gameObject.msgINobject.MmessageDate;
+                                            gameObject.msgOUTobject.userWin = gameObject.msgINobject.userAttempt;
                                             await Answer(message);
                                         }
                                         else
                                         {
                                             // считаем ответ как попытку ответить
-                                            Logger.Info(msgINobject.userAttempt.Name + " incorrect unswer");
-                                            msgINobject = null;
+                                            Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect unswer");
+                                            gameObject.msgINobject = null;
                                         }                                        
                                     }
                                 }                             
@@ -245,16 +256,16 @@ namespace BotGame
                         }// если ответ через реплай
                         else
                         // если ответ через кнопки
-                        if ((issuesObject.TypeAnswer == 1) && (msgOUTobject is null))
+                        if ((gameObject.issuesObject.TypeAnswer == 1) && (gameObject.msgOUTobject is null))
                         {
-                            num++;
-                            msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issuesObject);                                                   
+                            gameObject.num++;
+                            gameObject.msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject);                                                   
                         }// если ответ через кнопки                       
                     }
 
-                    if (questionNumber.Count < 1 && !game && end)
+                    if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
                     {
-                        end = false;
+                        gameObject.end = false;
                         EndGame(message);
                     }
                 };
@@ -263,38 +274,41 @@ namespace BotGame
                 {
                     await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
                     var message = ev.CallbackQuery.Message;
+
+                    Game gameObject = (Game)gameChat[message.Chat.Id];
+                                       
                     message.From = ev.CallbackQuery.From;
-                    msgINobject = await SaveMsgIn(message);
-                    msgOUTobject.AttemptsAnswers++;
-                    if (issuesObject.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
+                    gameObject.msgINobject = await SaveMsgIn(message);
+                    gameObject.msgOUTobject.AttemptsAnswers++;
+                    if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
                     {                        
-                        await Bot.EditMessageTextAsync(msgOUTobject.ChatId, msgOUTobject.MessageId, msgOUTobject.MessageText, 
+                        await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText, 
                             parseMode: ParseMode.Default, replyMarkup: null);
-                        
-                        msgOUTobject.userWin = msgINobject.userAttempt;
-                        msgOUTobject.AnswerDate = msgINobject.MmessageDate;
+
+                        gameObject.msgOUTobject.userWin = gameObject.msgINobject.userAttempt;
+                        gameObject.msgOUTobject.AnswerDate = gameObject.msgINobject.MmessageDate;
 
                         string name = String.IsNullOrEmpty(ev.CallbackQuery.From.LastName) ? ev.CallbackQuery.From.FirstName : ev.CallbackQuery.From.FirstName
                         + " " + ev.CallbackQuery.From.LastName;
 
-                        var msgTemp = await Bot.SendTextMessageAsync(msgOUTobject.ChatId, "Правильный ответ '" + 
-                            issuesObject.CorrectAnswer + "' получен от " + name);
-                        
-                        msgOUTobject = await SaveMsgOUT(msgTemp, issuesObject.Id);
-                        msgOUTobject = null;
+                        var msgTemp = await Bot.SendTextMessageAsync(gameObject.msgOUTobject.ChatId, "Правильный ответ '" +
+                            gameObject.issuesObject.CorrectAnswer + "' получен от " + name);
+
+                        gameObject.msgOUTobject = await SaveMsgOUT(msgTemp, gameObject.issuesObject.Id);
+                        gameObject.msgOUTobject = null;
 
                         await Answer(message);
                     }
                     else
                     {
-                        Logger.Info(msgINobject.userAttempt.Name + " incorrect unswer");
+                        Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect unswer");
                         //msgOUT.AttemptsAnswers++;
-                        msgINobject = null;
+                        gameObject.msgINobject = null;
                     }
 
-                    if (questionNumber.Count < 1 && !game && end)
+                    if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
                     {
-                        end = false;
+                        gameObject.end = false;
                         EndGame(message);
                     }
                 };
@@ -308,47 +322,50 @@ namespace BotGame
         }
 
         static async Task Answer(Telegram.Bot.Types.Message message, string button = "")
-        {           
-            questionNumber.Remove(questionNumber[0]);
-            num++;
-            if (questionNumber.Count != 0)
+        {
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+
+            gameObject.questionNumber.Remove(gameObject.questionNumber[0]);
+            gameObject.num++;
+            if (gameObject.questionNumber.Count != 0)
             {
                 string temp = "Правильный ответ\n\n";
-                issuesObject = (IssuesClass)config.issues[questionNumber[0]];
-                if (questionNumber.Count > 1)
+                gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];
+                if (gameObject.questionNumber.Count > 1)
                     temp += "Следующий вопрос:\n\n";
                 
-                if (issuesObject.TypeAnswer == 0)
-                    msgOUTobject = await SendIssuesReply(Bot, message.Chat.Id, num.ToString(), issuesObject, temp, message.MessageId);
-                if (issuesObject.TypeAnswer == 1)
-                    msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, num.ToString(), issuesObject, temp, message.MessageId);
+                if (gameObject.issuesObject.TypeAnswer == 0)
+                    gameObject.msgOUTobject = await SendIssuesReply(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, temp, message.MessageId);
+                if (gameObject.issuesObject.TypeAnswer == 1)
+                    gameObject.msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, temp, message.MessageId);
             }
             else
             {
-                game = false;
-                end = true;
+                gameObject.game = false;
+                gameObject.end = true;
             }
-            msgINobject = null;
+            gameObject.msgINobject = null;
         }
 
         static async void EndGame(Telegram.Bot.Types.Message message)
         {
-            //var msgTemp = await Bot.SendTextMessageAsync(message.Chat.Id, "Конец игры");
-            //MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);            
-            //msgOUT = null;
-            Logger.Success("end game");            
-            string win = Statistics.GetStatistics(messageOUTobject, config);
-            config.issues.Clear();
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+
+            Logger.Success("chat " + message.Chat.Id.ToString() + " end game");            
+            string win = Statistics.GetStatistics(gameObject.messageOUTobject, config);
+            gameObject.issues.Clear();
             await Bot.SendTextMessageAsync(message.Chat.Id, win);
             await Task.Delay(config.DeletionDelay);
-            DeleteMsg();
-            num = 0;
+            DeleteMsg(message);
+            gameObject.num = 0;
         }
 
-        static async void DeleteMsg()
+        static async void DeleteMsg(Telegram.Bot.Types.Message message)
         {
-            Logger.Info("start delete message");
-            foreach (MessageOUT msgDel in messageOUTobject)
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+
+            Logger.Info("chat " + message.Chat.Id.ToString() + " start delete message");
+            foreach (MessageOUT msgDel in gameObject.messageOUTobject)
             {
                 if (msgDel != null)
                     try
@@ -357,12 +374,12 @@ namespace BotGame
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e.Message);
-                        Logger.Warn(msgDel.MessageText);
+                        Logger.Error("chat " + message.Chat.Id.ToString() + " " + e.Message);
+                        Logger.Warn("chat " + message.Chat.Id.ToString() + " " + msgDel.MessageText);
                     }
             }
 
-            foreach (MessageIN msgDel in messageINobject)
+            foreach (MessageIN msgDel in gameObject.messageINobject)
             {
                 if (msgDel != null)
                     try
@@ -371,13 +388,13 @@ namespace BotGame
                     }
                     catch (Exception e)
                     {
-                        Logger.Error(e.Message); 
-                        Logger.Warn(msgDel.MessageText);
+                        Logger.Error("chat " + message.Chat.Id.ToString() + " " + e.Message); 
+                        Logger.Warn("chat " + message.Chat.Id.ToString() + " " + msgDel.MessageText);
                     }
             }
-            messageOUTobject.Clear();
-            messageINobject.Clear();
-            Logger.Info("end delete message");
+            gameObject.messageOUTobject.Clear();
+            gameObject.messageINobject.Clear();
+            Logger.Info("chat " + message.Chat.Id.ToString() + " end delete message");
         }
 
         static async public void SendMsg(long chat_id, string text)
