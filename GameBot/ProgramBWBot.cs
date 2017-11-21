@@ -18,6 +18,7 @@ namespace BotGame
 
         static bool insert = false;
         private static Hashtable insertUser = new Hashtable();
+        private static Hashtable deleteUser = new Hashtable();
 
         static bool StartGame(Telegram.Bot.Types.Message message)
         {
@@ -140,7 +141,7 @@ namespace BotGame
                         replyMarkup: replyMarkup, replyToMessageId: gameObject.msgINobject.MessageId);
                 }
 
-                    MessageOUT msgOUTtemp = await SaveMsgOUT(msg, issues.Id);
+            MessageOUT msgOUTtemp = await SaveMsgOUT(msg, issues.Id);
             Logger.Info("chat " + chatId.ToString() + " " + num.ToString() + " question submitted");
             return msgOUTtemp;
         }
@@ -158,6 +159,9 @@ namespace BotGame
                 MmessageDate = message.Date,
                 userWin = new User()
         };
+
+            Logger.Debug("save msgOUT id " + msgOUTtemp.MessageId);
+
             gameObject.messageOUTobject.Add(msgOUTtemp);
             return msgOUTtemp;
         }
@@ -185,6 +189,8 @@ namespace BotGame
                 userAttempt = new User { Id = message.From.Id, Name = GetUserName(message), Username = message.From.Username }
             };
 
+            Logger.Debug("save msgIN id " + msgINtemp.MessageId + " text " + msgINtemp.MessageText);
+
             gameObject.messageINobject.Add(msgINtemp);
             return msgINtemp;
         }
@@ -208,7 +214,7 @@ namespace BotGame
                     if (message == null || message.Type != MessageType.TextMessage)
                         return;
 
-                    Logger.DebugMessage(message);
+                    //Logger.DebugMessage(message);
 
                     //message.Text = message.Text.Replace("<b>","");
                     //message.Text = message.Text.Replace("</b>", "");
@@ -236,6 +242,26 @@ namespace BotGame
                                 await Insert(message);
                                 return;
                             }
+
+                    if ((message.Text.StartsWith("/delete") || message.Text.StartsWith("/delete@ucs13bot")) || insert)
+                        if (message.From.Id == config.ADMIN)
+                            if (message.Chat.Type == ChatType.Private)
+                            {
+                                //if (!insertUser.ContainsKey(message.Chat.Id))
+                                //{
+                                //    insertUser.Add(message.Chat.Id,
+                                //        new InsertOptions
+                                //        {
+                                //            flag = -1,
+                                //            count = -1,
+                                //            countQ = 0,
+                                //            newQuestion = new IssuesClass()
+                                //        });
+                                //}
+                                await Delete(message);
+                                return;
+                            }
+
 
                     string textStart = "";
                     if (message.Text == @"/newgame" || message.Text == @"/newgame@ucs13bot")
@@ -288,7 +314,7 @@ namespace BotGame
                             }
                             else
                             {
-                                if (message.ReplyToMessage != null)
+                                if (message.ReplyToMessage != null && message.ReplyToMessage.MessageId == gameObject.msgOUTobject.MessageId)
                                 {
                                     gameObject.msgINobject = await SaveMsgIn(message);
 
@@ -709,6 +735,12 @@ namespace BotGame
         {
             await Bot.SendTextMessageAsync(chatId, text);
             insertUser[chatId] = insertOptions;
+        }
+
+        static async public Task Delete(Telegram.Bot.Types.Message message)
+        {
+            if (!deleteUser.ContainsKey(message.From.Id))
+                deleteUser.Add(message.From.Id, new DeleteOptions { });
         }
     }
 }

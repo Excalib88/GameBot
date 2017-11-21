@@ -205,9 +205,9 @@ namespace BotGame
             {
                 connection.Open();
                 SQLiteCommand command1 = new SQLiteCommand("select count (chat_id) as count from 'statistics' " +
-                    "where chat_id = '" + ChatId.ToString() + "';", connection);
+                    "where chat_id = @ChatId;", connection);
                 Logger.Info(command1.CommandText);
-
+                command1.Parameters.AddWithValue("@ChatId", ChatId.ToString());
                 SQLiteDataReader readerKey = command1.ExecuteReader();
                 foreach (DbDataRecord record in readerKey)
                 {
@@ -233,9 +233,15 @@ namespace BotGame
                 SQLiteCommand command1 = new SQLiteCommand("insert into 'statistics' (date_game, user_win_id, user_win_name, " +
                     "username_win_telegram, id_question_attempt, id_question_time, " +
                     "chat_id, chat_name) " +
-                    "select '" + DateTime.Now.ToString() + "', " + user.Id + ", '" + user.Name + "', '"+ username
-                    + "', @question_attempt, @question_time, @chat_id, @chat_name;", connection);
+                    "select @DateTime, @userId, @user_Name, @username"
+                    + ", @question_attempt, @question_time, @chat_id, @chat_name;", connection);
                 Logger.Info(command1.CommandText);
+
+                command1.Parameters.AddWithValue("@DateTime", DateTime.Now.ToString());
+                command1.Parameters.AddWithValue("@userId", user.Id);
+                command1.Parameters.AddWithValue("@user_Name", user.Name);
+                command1.Parameters.AddWithValue("@username", username);
+
                 command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
                 command1.Parameters.AddWithValue("@question_time", questionTime);
                 command1.Parameters.AddWithValue("@chat_id", ChatId.ToString());

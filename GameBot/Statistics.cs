@@ -12,6 +12,7 @@ namespace BotGame
         private static string idQuestionAttempts;
         private static string idQuestionTime;
         private static List<User> userQ;
+        private static User userWIN;
         private static List<User> allUser;
 
 
@@ -59,7 +60,7 @@ namespace BotGame
             }
 
             var id = user.Keys;
-
+            userWIN = new User();
             int number = -1;
             int r = -1;           
             allUser = new List<User>();
@@ -67,14 +68,24 @@ namespace BotGame
             foreach (int i in id)
             {
                 number = newMsg.Count(p => p.userWin.Name == user[i].ToString());
+                //userWIN
                 if (number > r)
+                {
+                    userWIN = new User
+                    {
+                        Id = i,
+                        Name = user[i].ToString(),
+                    };
+                    r = number;
+                }
+
+                if (number == userWIN.countCorrectAnswer && i != userWIN.Id)
                 {
                     userQ.Add(new User
                     {
                         Id = i,
                         Name = user[i].ToString(),
                     });
-                    r = number;
                 }
                 allUser.Add(
                     new User
@@ -99,6 +110,9 @@ namespace BotGame
             SelectUserWin();
 
             string win = "Победители в игре:\n";
+            win += userWIN.Name + "\n";
+            config.SaveStatistics(userWIN, idQuestionAttempts, idQuestionTime, ChatId, ChatName);
+
             foreach (User u in userQ)
             {
                 win += u.Name + "\n";
