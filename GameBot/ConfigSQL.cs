@@ -88,7 +88,6 @@ namespace BotGame
             try
             {
                 connection.Open();
-
                 SQLiteCommand commandKey = new SQLiteCommand("select key, value from 'settings';", connection);
                 Logger.Info(commandKey.CommandText);
                 SQLiteDataReader readerKey = commandKey.ExecuteReader();
@@ -97,16 +96,14 @@ namespace BotGame
                     if (!settings.ContainsKey(record["key"].ToString()))
                         settings.Add(record["key"].ToString(), record["value"]);
                 }                
-                connection.Close();                
-
+                connection.Close();
                 foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT, NAME_ADMIN, RULE_INSERT })
                 {
                     if (!settings.ContainsKey(name))
                     {                        
                         Logger.Warn("Не найден настроечный параметр " + name);
                     }
-                }
-                
+                }                
             }
             catch (Exception e)
             {
@@ -121,7 +118,6 @@ namespace BotGame
             try
             {
                 connection.Open();
-
                 SQLiteCommand command = new SQLiteCommand("select id, question_text," +
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
                     "possible_answer_4, possible_answer_5," +
@@ -160,7 +156,6 @@ namespace BotGame
                 connection.Close();
                 Logger.Error(e.Message);
             }
-
             return issues;
         }
 
@@ -176,18 +171,90 @@ namespace BotGame
                     "@possible_answer_1, @possible_answer_2, @possible_answer_3, @possible_answer_4, @possible_answer_5, " +
                      issues.TypeAnswer.ToString() + ";", connection);
                 Logger.Info(command1.CommandText);
-
                 command1.Parameters.AddWithValue("@question_text", issues.QuestionText.Replace("\n","@BR"));
-
                 command1.Parameters.AddWithValue("@possible_answer_1", issues.PossibleAnswer_1);
                 command1.Parameters.AddWithValue("@possible_answer_2", issues.PossibleAnswer_2);
                 command1.Parameters.AddWithValue("@possible_answer_3", issues.PossibleAnswer_3);
                 command1.Parameters.AddWithValue("@possible_answer_4", issues.PossibleAnswer_4);
                 command1.Parameters.AddWithValue("@possible_answer_5", issues.PossibleAnswer_5);
-
                 command1.ExecuteNonQuery();
                 connection.Close();
                 Logger.Success("save issues in base");
+                return true;
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);
+                return false;
+            }
+        }
+
+        public string SelectWin(long chatId)
+        {
+            string result = "";
+            try
+            {
+                connection.Open();
+                SQLiteCommand command2 = new SQLiteCommand("select count (user_win_name) as count, " +
+                    "user_win_name as name from statistics where chat_id = @chat_id " +
+                    "group by user_win_name " +
+                    "order by count (user_win_name) desc", connection);
+                Logger.Info(command2.CommandText);
+                command2.Parameters.AddWithValue("@chat_id", chatId);
+                SQLiteDataReader readerKey = command2.ExecuteReader();
+                foreach (DbDataRecord record in readerKey)
+                {
+                    result += record["name"].ToString() + ": " + record["count"].ToString() + " win\n";
+                }
+                connection.Close();
+                Logger.Success("select count win from base");
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);
+            }
+            return result;
+        }
+
+        public string CountIssue()
+        {
+            string result = "";
+            try
+            {
+                connection.Open();
+                SQLiteCommand command2 = new SQLiteCommand("select count (id) as count from issues;", connection);
+                Logger.Info(command2.CommandText);
+
+                SQLiteDataReader readerKey = command2.ExecuteReader();
+                foreach (DbDataRecord record in readerKey)
+                {
+                    result = record["count"].ToString();
+                }
+                connection.Close();
+                Logger.Success("select count issues from base");                
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);                
+            }
+            return result;
+        }
+
+        public bool DeleteIssue(int id)
+        {
+            try
+            {
+                connection.Open();
+                SQLiteCommand command1 = new SQLiteCommand("delete from issues " +
+                    "where id = @id", connection);
+                Logger.Info(command1.CommandText);
+                command1.Parameters.AddWithValue("@id", id);                                
+                command1.ExecuteNonQuery();
+                connection.Close();
+                Logger.Success("delete issues in base");
                 return true;
             }
             catch (Exception e)
@@ -224,6 +291,38 @@ namespace BotGame
             return result;
         }
 
+        public DeleteOptions SelectForDelete()
+        {
+            DeleteOptions delete = new DeleteOptions();
+            try
+            {
+                connection.Open();
+                SQLiteCommand command2 = new SQLiteCommand("select max (id) as maxId from issues;", connection);
+                Logger.Info(command2.CommandText);
+                SQLiteDataReader reader = command2.ExecuteReader();
+                foreach (DbDataRecord record in reader)
+                {
+                    delete.maxId = Convert.ToInt32(record["maxId"]);                    
+                }
+                SQLiteCommand command1 = new SQLiteCommand("select id, question_text from issues;", connection);
+                Logger.Info(command1.CommandText);
+                SQLiteDataReader readerKey = command1.ExecuteReader();
+                foreach (DbDataRecord record in readerKey)
+                {                    
+                    if (!delete.issuesDelete.ContainsKey(record["id"].ToString()))
+                        delete.issuesDelete.Add(Convert.ToInt32(record["id"]), record["question_text"].ToString().Replace("@BR","\n"));
+                }
+                connection.Close();
+                Logger.Success("select for delete");
+            }
+            catch (Exception e)
+            {
+                connection.Close();
+                Logger.Error(e.Message);
+            }
+            return delete;
+        }
+
         public void SaveStatistics(User user, string questionAttempt, string questionTime, long ChatId, string ChatName)
         {
             string username = !String.IsNullOrEmpty(user.Username) ? user.Username : "";
@@ -236,17 +335,14 @@ namespace BotGame
                     "select @DateTime, @userId, @user_Name, @username"
                     + ", @question_attempt, @question_time, @chat_id, @chat_name;", connection);
                 Logger.Info(command1.CommandText);
-
                 command1.Parameters.AddWithValue("@DateTime", DateTime.Now.ToString());
                 command1.Parameters.AddWithValue("@userId", user.Id);
                 command1.Parameters.AddWithValue("@user_Name", user.Name);
                 command1.Parameters.AddWithValue("@username", username);
-
                 command1.Parameters.AddWithValue("@question_attempt", questionAttempt);
                 command1.Parameters.AddWithValue("@question_time", questionTime);
                 command1.Parameters.AddWithValue("@chat_id", ChatId.ToString());
                 command1.Parameters.AddWithValue("@chat_name", ChatName);
-
                 command1.ExecuteNonQuery();
                 connection.Close();
                 Logger.Success("save statistics in base");
