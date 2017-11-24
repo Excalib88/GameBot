@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SQLite;
+using System.Linq;
 
 namespace BotGame
 {
@@ -67,11 +69,12 @@ namespace BotGame
             }
         }
 
-        public int ADMIN
+        public List<string> ADMIN
         {
             get
             {
-                return Convert.ToInt32(settings[NAME_ADMIN]);
+                List<string> tolist = settings[NAME_ADMIN].ToString().Split(';').ToList<string>();
+                return tolist;
             }
             private set
             {

@@ -10,7 +10,7 @@ namespace BotGame
         #region write
         public static void Info(string text)
         {
-            WriteToLog(text, ConsoleColor.White, "info");
+            WriteToLog(text, ConsoleColor.DarkGray, "info");
         }
 
         public static void Success(string text)
@@ -26,7 +26,7 @@ namespace BotGame
 
         public static void Warn(string text)
         {
-            WriteToLog(text, ConsoleColor.DarkGray, "warn");
+            WriteToLog(text, ConsoleColor.White, "warn");
         }
 
         public static void Debug(string text)
