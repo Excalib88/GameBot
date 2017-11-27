@@ -15,17 +15,12 @@ namespace BotGame
     partial class Program
     {
         private static Hashtable gameChat = new Hashtable();
-
-        static bool insert = false;
         private static Hashtable insertUser = new Hashtable();
-        static bool delete = false;
         private static Hashtable deleteUser = new Hashtable();
 
         static bool StartGame(Telegram.Bot.Types.Message message)
         {
-            if (!gameChat.ContainsKey(message.Chat.Id)
-                && config.ADMIN.Contains(message.From.Id.ToString()))
-                //&& (message.From.Id in config.ADMIN))
+            if (!gameChat.ContainsKey(message.Chat.Id) && config.ADMIN.Contains(message.From.Id.ToString()))
             {
                 gameChat.Add(message.Chat.Id,
                     new Game
@@ -151,7 +146,7 @@ namespace BotGame
                 MmessageDate = message.Date,
                 userWin = new User()
         };
-            Logger.Info("save msgOUT id " + msgOUTtemp.MessageId);
+            //Logger.Info("save msgOUT id " + msgOUTtemp.MessageId);
             gameObject.messageOUTobject.Add(msgOUTtemp);
             return msgOUTtemp;
         }
@@ -177,10 +172,29 @@ namespace BotGame
                 ReplayToUserId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.From.Id,
                 userAttempt = new User { Id = message.From.Id, Name = GetUserName(message), Username = message.From.Username }
             };
-            Logger.Info("save msgIN id " + msgINtemp.MessageId + " text " + msgINtemp.MessageText 
-                + " from " + msgINtemp.userAttempt.Name);
+            //Logger.Info("save msgIN id " + msgINtemp.MessageId + " text " + msgINtemp.MessageText 
+                //+ " from " + msgINtemp.userAttempt.Name);
             gameObject.messageINobject.Add(msgINtemp);
             return msgINtemp;
+        }
+
+        private static Game SelectIssuesGame(Telegram.Bot.Types.Message message)
+        {
+            Game gameObject = (Game)gameChat[message.Chat.Id];
+            var countTemp = new int[] { 7, 10, 15 };
+            Random rndTemp = new Random();
+            int n = countTemp[rndTemp.Next(countTemp.Length)];
+            // получаем список вопросов
+            gameObject.issues = config.SelectQuestion();
+            var KeyId = gameObject.issues.Keys;
+            var vals = KeyId.Cast<int>().ToArray();
+            for (int i = 0; i < n; i++)
+            {
+                var val = vals[rndTemp.Next(vals.Length)];
+                if (!gameObject.questionNumber.Contains(val))
+                    gameObject.questionNumber.Add(val);
+            }
+            return gameObject;
         }
 
         async static void BWBot(object sender, DoWorkEventArgs e)
@@ -201,11 +215,12 @@ namespace BotGame
                     Game gameObject = (Game)gameChat[message.Chat.Id];
                     if (gameObject == null)
                         gameObject = new Game();
-                    if ((message.Text.StartsWith("/count") || message.Text.StartsWith("/count@ucs13bot")) && config.ADMIN.Contains(message.From.Id.ToString()))
+                    if ((message.Text.StartsWith("/count") || message.Text.StartsWith("/count" + config.NameBot)) && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
                         {
-                            await Bot.SendTextMessageAsync(message.Chat.Id, "Количество вопросов в базе: " + config.CountIssue(), parseMode: ParseMode.Default);
+                            await SendMsg(message.Chat.Id, "Количество вопросов в базе: " + config.CountIssue());
+                            //await Bot.SendTextMessageAsync(message.Chat.Id, "Количество вопросов в базе: " + config.CountIssue(), parseMode: ParseMode.Default);
                             Logger.Info("send count issues in base in chat: " + message.Chat.Id.ToString());
                         }
                         catch
@@ -213,11 +228,12 @@ namespace BotGame
                             Logger.Warn("dont send count issues in base in chat: " + message.Chat.Id.ToString());
                         }
                     }
-                    if ((message.Text.StartsWith("/win") || message.Text.StartsWith("/win@ucs13bot")) && config.ADMIN.Contains(message.From.Id.ToString()))
+                    if ((message.Text.StartsWith("/win") || message.Text.StartsWith("/win" + config.NameBot)) && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
                         {
-                            await Bot.SendTextMessageAsync(message.Chat.Id, "Рейтинг чата:\n\n" + config.SelectWin(message.Chat.Id), parseMode: ParseMode.Default);
+                            await SendMsg(message.Chat.Id, "Рейтинг чата:\n\n" + config.SelectWin(message.Chat.Id));
+                            //await Bot.SendTextMessageAsync(message.Chat.Id, "Рейтинг чата:\n\n" + config.SelectWin(message.Chat.Id), parseMode: ParseMode.Default);
                             Logger.Info("send win in chat: " + message.Chat.Id.ToString());
                         }
                         catch
@@ -225,7 +241,9 @@ namespace BotGame
                             Logger.Warn("dont send win in chat: " + message.Chat.Id.ToString());
                         }
                     }
-                    if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert@ucs13bot")) || insert)
+                    InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
+
+                    if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert" + config.NameBot)) || (insertOptions != null))
                         if (config.ADMIN.Contains(message.From.Id.ToString()))
                             if (message.Chat.Type == ChatType.Private)
                             {
@@ -243,7 +261,10 @@ namespace BotGame
                                 await Insert(message);
                                 return;
                             }
-                    if ((message.Text.StartsWith("/delete") || message.Text.StartsWith("/delete@ucs13bot")) || delete)
+
+                    DeleteOptions deleteOptions = (DeleteOptions)deleteUser[message.From.Id];
+
+                    if ((message.Text.StartsWith("/delete") || message.Text.StartsWith("/delete" + config.NameBot)) || (deleteOptions != null))
                         if (config.ADMIN.Contains(message.From.Id.ToString()))
                             if (message.Chat.Type == ChatType.Private)
                             {
@@ -251,25 +272,12 @@ namespace BotGame
                                 return;
                             }
                     string textStart = "";
-                    if (message.Text == @"/newgame" || message.Text == @"/newgame@ucs13bot")
+                    if (message.Text == @"/newgame" || message.Text == @"/newgame" + config.NameBot)
                         if (StartGame(message))
                         {                            
-                            var m = await SaveMsgIn(message);
-                            gameObject = (Game)gameChat[message.Chat.Id];
+                            var m = await SaveMsgIn(message);                            
                             Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
-                            var countTemp = new int[] { 7, 10, 15 };
-                            Random rndTemp = new Random();
-                            int n = countTemp[rndTemp.Next(countTemp.Length)];
-                            // получаем список вопросов
-                            gameObject.issues = config.SelectQuestion();
-                            var KeyId = gameObject.issues.Keys;
-                            var vals = KeyId.Cast<int>().ToArray();
-                            for (int i = 0; i < n; i++)
-                            {
-                                var val = vals[rndTemp.Next(vals.Length)];
-                                if (!gameObject.questionNumber.Contains(val))
-                                    gameObject.questionNumber.Add(val);                                                                
-                            }
+                            gameObject = SelectIssuesGame(message);
                             Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
                             string count = config.SelectCountGame(message.Chat.Id);
                             textStart += "Игра №" + count + " началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
@@ -308,7 +316,7 @@ namespace BotGame
                                             }
                                             catch (Exception e1)
                                             {
-                                                await Bot.SendTextMessageAsync(message.Chat.Id, "Я сломался");
+                                                //await Bot.SendTextMessageAsync(message.Chat.Id, "Я сломался");
                                                 Logger.Error(e1.Message);
                                             }
                                         }
@@ -356,24 +364,30 @@ namespace BotGame
                     {
                         Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
                     }
+
                     var message = ev.CallbackQuery.Message;
-                    Game gameObject = (Game)gameChat[message.Chat.Id];                                       
-                    message.From = ev.CallbackQuery.From;
-                    gameObject.msgINobject = await SaveMsgIn(message);
-                    gameObject.msgOUTobject.AttemptsAnswers++;
-                    if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
+                    Game gameObject = (Game)gameChat[message.Chat.Id];
+                    if ((gameObject != null) && gameObject.game)
                     {
+                        await OnCallbackQueryGame(message, ev, gameObject);
+                        return;
+                    }
+
+                    InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
+                    if (insertOptions != null)
+                    {
+                        insertOptions.btnText = ev.CallbackQuery.Data;
                         try
                         {
                             try
                             {
-                                await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText,
+                                await Bot.EditMessageTextAsync(message.Chat.Id, message.MessageId, message.Text,
                                     parseMode: ParseMode.Html, replyMarkup: null);
                             }
                             catch (Telegram.Bot.Exceptions.ApiRequestException ewq)
                             {
                                 Logger.Warn(ewq.Message);
-                                await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText,
+                                await Bot.EditMessageTextAsync(message.Chat.Id, message.MessageId, message.Text,
                                 parseMode: ParseMode.Default, replyMarkup: null);
                             }
                         }
@@ -381,32 +395,10 @@ namespace BotGame
                         {
                             Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
                         }
-                        gameObject.msgOUTobject.userWin = gameObject.msgINobject.userAttempt;
-                        gameObject.msgOUTobject.AnswerDate = gameObject.msgINobject.MmessageDate;
-                        string name = String.IsNullOrEmpty(ev.CallbackQuery.From.LastName) ? ev.CallbackQuery.From.FirstName : ev.CallbackQuery.From.FirstName
-                        + " " + ev.CallbackQuery.From.LastName;
-                        string text =  " '" + gameObject.issuesObject.CorrectAnswer + "' получен от " + name;                                               
-                        try
-                        {
-                            await Answer(message, null, text);
-                        }
-                        catch (Exception e1)
-                        {
-                            await Bot.SendTextMessageAsync(message.Chat.Id, "Я сломался");
-                            Logger.Error(e1.Message);
-                        }
-                    }
-                    else
-                    {
-                        Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect answer");                        
-                        gameObject.msgINobject = null;
+                        await Insert(message);
+                        return;
                     }
 
-                    if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
-                    {
-                        gameObject.end = false;
-                        EndGame(message);
-                    }
                 };
                 Bot.StartReceiving();
             }
@@ -414,6 +406,58 @@ namespace BotGame
             {
                 Logger.Error(ex.Message);
             }            
+        }
+
+        static async Task OnCallbackQueryGame(Telegram.Bot.Types.Message message, CallbackQueryEventArgs ev, Game gameObject)
+        {
+            message.From = ev.CallbackQuery.From;
+            gameObject.msgINobject = await SaveMsgIn(message);
+            gameObject.msgOUTobject.AttemptsAnswers++;
+            if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
+            {
+                try
+                {
+                    try
+                    {
+                        await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText,
+                            parseMode: ParseMode.Html, replyMarkup: null);
+                    }
+                    catch (Telegram.Bot.Exceptions.ApiRequestException ewq)
+                    {
+                        Logger.Warn(ewq.Message);
+                        await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText,
+                        parseMode: ParseMode.Default, replyMarkup: null);
+                    }
+                }
+                catch (Telegram.Bot.Exceptions.ApiRequestException ert)
+                {
+                    Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
+                }
+                gameObject.msgOUTobject.userWin = gameObject.msgINobject.userAttempt;
+                gameObject.msgOUTobject.AnswerDate = gameObject.msgINobject.MmessageDate;
+                string name = String.IsNullOrEmpty(ev.CallbackQuery.From.LastName) ? ev.CallbackQuery.From.FirstName : ev.CallbackQuery.From.FirstName
+                + " " + ev.CallbackQuery.From.LastName;
+                string text = " '" + gameObject.issuesObject.CorrectAnswer + "' получен от " + name;
+                try
+                {
+                    await Answer(message, null, text);
+                }
+                catch (Exception e1)
+                {
+                    Logger.Error(e1.Message);
+                }
+            }
+            else
+            {
+                Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect answer");
+                gameObject.msgINobject = null;
+            }
+
+            if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
+            {
+                gameObject.end = false;
+                EndGame(message);
+            }
         }
 
         static async Task Answer(Telegram.Bot.Types.Message message, string button = "", string text = "")
@@ -490,75 +534,111 @@ namespace BotGame
             Logger.Info("chat " + message.Chat.Id.ToString() + " end delete message");
         }
 
-        static async public void SendMsg(long chat_id, string text)
+        static async public Task SendMsg(long chatId, string text)
         {
             Telegram.Bot.Types.Message msgTemp = new Telegram.Bot.Types.Message();
             try
             {
-                msgTemp = await Bot.SendTextMessageAsync(chat_id, text, parseMode: ParseMode.Html);
+                msgTemp = await Bot.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html);
             }
             catch (Telegram.Bot.Exceptions.ApiRequestException ewq)
             {
                 Logger.Warn(ewq.Message);
-                msgTemp = await Bot.SendTextMessageAsync(chat_id, text, parseMode: ParseMode.Default);
+                msgTemp = await Bot.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Default);
             }
             MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);
             msgOUT = null;
         }
-                
+
+        static async public Task SendMsgKeyboardInsert(long chatId, string text, string[] btnText, InsertOptions insertOptions)
+        {
+            InlineKeyboardCallbackButton[] inl = new InlineKeyboardCallbackButton[btnText.Length];
+            for (int i = 0; i < btnText.Length; i++)
+            {
+                inl[i] = new InlineKeyboardCallbackButton(btnText[i], (i + 1).ToString());                
+            }
+
+            InlineKeyboardButton[] a = new InlineKeyboardButton[btnText.Length];  
+            
+            for (int i = 0; i < btnText.Length; i++)
+            {
+                a[i] = inl[i];
+            }
+
+            var replyMarkup = new InlineKeyboardMarkup(a);
+            
+                try
+                {
+                    await Bot.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Html,
+                        replyMarkup: replyMarkup);
+                }
+                catch (Telegram.Bot.Exceptions.ApiRequestException eqw)
+                {
+                    Logger.Warn(eqw.Message);
+                    await Bot.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Default,
+                       replyMarkup: replyMarkup);
+                }
+                insertUser[chatId] = insertOptions;
+            }
+
         static async public Task Insert(Telegram.Bot.Types.Message message)
         {
             string userInsertName = "Пользователь " + GetUserName(message) + ": ";
-            insert = true;
-            InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];            
+            
+            InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
+            insertOptions.insert = true;
             if (insertOptions.newQuestion == null)
                 insertOptions.newQuestion = new IssuesClass();            
-            if (String.IsNullOrEmpty(insertOptions.newQuestion.QuestionText) && insertOptions.flag == -1)
+            if (String.IsNullOrEmpty(insertOptions.newQuestion.QuestionText) && insertOptions.flag == InsertOptions.INSERT_FALSE)
             {
                 Logger.Info(userInsertName + " добавляет новый вопрос");
                 // config.RuleInsert
-                insertOptions.flag = 0;
+                insertOptions.flag = InsertOptions.INSERT_START;
+                // или пришлите картинку с вопросом
                 await SendInsertMsg(message.Chat.Id, "Введите текст вопроса", insertOptions);
                 return;
             }
-            if (insertOptions.flag == 0)
+            if (insertOptions.flag == InsertOptions.INSERT_START)
             {
                 if (!String.IsNullOrEmpty(message.Text))
                 {
                     insertOptions.newQuestion.QuestionText = message.Text.Replace("\n", "@BR");
                     Logger.Info(userInsertName + " введенный вопрос: " + message.Text);
-                    insertOptions.flag = 1;
+                    insertOptions.flag = InsertOptions.INSERT_COUNT_ANSWER;
                 }
             }
-            if (insertOptions.flag == 1)
+            if (insertOptions.flag == InsertOptions.INSERT_COUNT_ANSWER)
             {
-                insertOptions.flag = 2;
-                await SendInsertMsg(message.Chat.Id, "Введите количество вариантов ответа (для реплая не более 5, для кнопок - не более 3)", insertOptions);
+                insertOptions.flag = InsertOptions.INSERT_CORRECT_COUNT_ANSWER;
+                //await SendInsertMsg(message.Chat.Id, "Введите количество вариантов ответа (для реплая не более 5, для кнопок - не более 3)", insertOptions);
+                await SendMsgKeyboardInsert(message.Chat.Id, "Выберите количество вариантов ответа.\nДля реплая не более 5, для кнопок - не более 3", 
+                    new string[] { "1", "2", "3", "4", "5" } , insertOptions);
                 return;
             }
-            if (insertOptions.flag == 2)
+            if (insertOptions.flag == InsertOptions.INSERT_CORRECT_COUNT_ANSWER)
             {
-                bool res = int.TryParse(message.Text, out insertOptions.count);
+                bool res = int.TryParse(insertOptions.btnText, out insertOptions.count);
                 if (!res || (insertOptions.count > 5 || insertOptions.count < 1))
                 {
-                    insertOptions.flag = 2;
-                    insertOptions.count = -1;
-                    await SendInsertMsg(message.Chat.Id, "Введите количество вариантов ответа (максимум 5)", insertOptions);
+                    insertOptions.flag = InsertOptions.INSERT_CORRECT_COUNT_ANSWER;
+                    insertOptions.count = InsertOptions.INSERT_FALSE;
+                    //await SendInsertMsg(message.Chat.Id, "Введите количество вариантов ответа (максимум 5)", insertOptions);
                     return;
                 }
                 else
                 {
-                    Logger.Info(userInsertName + " количество вариантов ответа: " + message.Text);                    
-                    insertOptions.flag = 3;                    
+                    Logger.Info(userInsertName + " количество вариантов ответа: " + insertOptions.btnText);
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Выбрано: " + insertOptions.btnText);
+                    insertOptions.flag = InsertOptions.INSERT_ANSWER;                    
                 }
             }
-            if (insertOptions.flag == 3)
+            if (insertOptions.flag == InsertOptions.INSERT_ANSWER)
             {
                 if (insertOptions.countQ <= insertOptions.count)
                 {                   
                     switch (insertOptions.countQ)
                     {
-                        case 1:
+                        case 1: 
                             {
                                 insertOptions.newQuestion.PossibleAnswer_1 = message.Text;
                                 break;
@@ -587,8 +667,8 @@ namespace BotGame
                     Logger.Info(userInsertName + " введенный ответ: " + message.Text);
                     if (insertOptions.countQ < insertOptions.count)
                     {
-                        insertOptions.flag = 3;
-                        await SendInsertMsg(message.Chat.Id, "Введите " + (insertOptions.countQ + 1).ToString() + " вариант ответа", insertOptions);
+                        insertOptions.flag = InsertOptions.INSERT_ANSWER;
+                        await SendInsertMsg(message.Chat.Id, "Введите " + (insertOptions.countQ + 1).ToString() + "-й вариант ответа", insertOptions);
                         insertOptions.countQ++;
                         return;
                     }
@@ -596,13 +676,21 @@ namespace BotGame
                     {
                         if (insertOptions.count != 1)
                         {
-                            insertOptions.flag = 4;
-                            await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", insertOptions);
+                            insertOptions.flag = InsertOptions.INSERT_RIGHT;
+                            //await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", insertOptions);
+
+                            string[] temp = new string[insertOptions.count];// { "1", "2", "3", "4", "5" };
+                            for (int i = 1; i <= insertOptions.count; i++)
+                            {
+                                temp[i - 1] = i.ToString();
+                            }
+                            await SendMsgKeyboardInsert(message.Chat.Id, "Выберите номер верного варианта ответа",
+                                temp, insertOptions);
                             return;
                         }
                         else
                         {
-                            insertOptions.flag = 6;
+                            insertOptions.flag = InsertOptions.INSERT_TYPE_ANSWER;
                             insertOptions.newQuestion.CorrectAnswer = insertOptions.newQuestion.PossibleAnswer_1;
                             insertOptions.newQuestion.PossibleAnswer_1 = "";
                             insertOptions.newQuestion.TypeAnswer = 0;
@@ -610,53 +698,56 @@ namespace BotGame
                     }
                 }                
             }
-            if (insertOptions.flag == 4)
+            if (insertOptions.flag == InsertOptions.INSERT_RIGHT)
             {
-                bool res = int.TryParse(message.Text, out int n);
+                bool res = int.TryParse(insertOptions.btnText, out int n);
                 if (!res || (n > insertOptions.count) || (n < 1))
                 {
-                    insertOptions.flag = 4;
-                    await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", insertOptions);
+                    insertOptions.flag = InsertOptions.INSERT_RIGHT;
+                    //await SendInsertMsg(message.Chat.Id, "Введите номер верного варианта ответа", insertOptions);
                     return;
                 }
                 else
                 {                    
                     insertOptions.newQuestion.CorrectAnswer = n.ToString();
                     Logger.Info(userInsertName + " верный вариант ответа: " + message.Text);
-                    insertOptions.flag = 5;
+                    insertOptions.flag = InsertOptions.INSERT_ANSWER_METHOD;
                 }
             }
-            if (insertOptions.flag == 5 && insertOptions.count > 1)
+            if (insertOptions.flag == InsertOptions.INSERT_ANSWER_METHOD && insertOptions.count > 1)
             {
-                insertOptions.flag = 6;
-                await SendInsertMsg(message.Chat.Id, "Введите 0, если ответ через реплай и 1, если ответ через кнопки", insertOptions);
+                insertOptions.flag = InsertOptions.INSERT_TYPE_ANSWER;
+                await SendMsgKeyboardInsert(message.Chat.Id, "Выберите способ ответа",
+                    new string[] { "Реплай", "Кнопки" }, insertOptions);
                 return;
             }
             else
-            if (insertOptions.flag == 6 && insertOptions.count == 1)
+            if (insertOptions.flag == InsertOptions.INSERT_TYPE_ANSWER && insertOptions.count == 1)
             {
                 insertOptions.newQuestion.TypeAnswer = 0;
                 Logger.Info(userInsertName + "тип ответа: реплай");
-                insertOptions.flag = 7;
+                insertOptions.flag = InsertOptions.INSERT_CORRECT;
             }
-            if (insertOptions.flag == 6)
+            if (insertOptions.flag == InsertOptions.INSERT_TYPE_ANSWER)
             {
-                bool res = int.TryParse(message.Text, out int n);
+                bool res = int.TryParse(insertOptions.btnText, out int n);
                 if (res)
                 {                    
-                    insertOptions.newQuestion.TypeAnswer = n;
+                    insertOptions.newQuestion.TypeAnswer = n-1;
                     Logger.Info(userInsertName + "тип ответа: " + message.Text);
-                    insertOptions.flag = 7;
+                    insertOptions.flag = InsertOptions.INSERT_CORRECT;
                 }
                 else
-                if (!res || (n != 0 || n != 1))
+                if (!res || (n != 2 || n != 1))
                 {
-                    insertOptions.flag = 6;
-                    await SendInsertMsg(message.Chat.Id, "Введите 0, если ответ через реплай или 1, если ответ через кнопки", insertOptions);
+                    insertOptions.flag = InsertOptions.INSERT_TYPE_ANSWER;
+                    //await SendInsertMsg(message.Chat.Id, "Введите 0, если ответ через реплай или 1, если ответ через кнопки", insertOptions);
+                    await SendMsgKeyboardInsert(message.Chat.Id, "Выберите способ ответа",
+                                new string[] { "Реплай", "Кнопки" }, insertOptions);
                     return;
                 }
             }
-            if (insertOptions.flag == 7)
+            if (insertOptions.flag == InsertOptions.INSERT_CORRECT)
             {
                 string txtQuest = "Проверьте правильнность введенных данных:\n\n" + insertOptions.newQuestion.QuestionText;
                 txtQuest += !String.IsNullOrEmpty(insertOptions.newQuestion.PossibleAnswer_1) ? "\n\nВарианты ответов:\n1 - " +
@@ -668,13 +759,15 @@ namespace BotGame
                 txtQuest += "\n\nВерный ответ - " + insertOptions.newQuestion.CorrectAnswer;
                 txtQuest += "\n\nОтвет с помощью ";
                 txtQuest += insertOptions.newQuestion.TypeAnswer == 0 ? "реплая" : "кнопок";
-                txtQuest += "\n\nЕсли все верно - введите 1, иначе 0";
+                //txtQuest += "\n\nВсе";
                 Logger.Info(userInsertName + txtQuest);
-                insertOptions.flag = 8;
-                await SendInsertMsg(message.Chat.Id, txtQuest, insertOptions);
+                insertOptions.flag = InsertOptions.INSERT_END;
+                //await SendIsertMsg(message.Chat.Id, txtQuest, insertOptions);
+                await SendMsgKeyboardInsert(message.Chat.Id, txtQuest,
+                                new string[] { "Отмена", "Ок" }, insertOptions);
                 return;
             }
-            if (insertOptions.flag == 8 && message.Text == "1")
+            if (insertOptions.flag == InsertOptions.INSERT_END && insertOptions.btnText == "2")
             {
                 Logger.Info(userInsertName + "insert newQuestion in base");
                 if (config.InsertIssues(insertOptions.newQuestion, message.From.Id, GetUserName(message)))
@@ -687,14 +780,14 @@ namespace BotGame
                     await Bot.SendTextMessageAsync(message.Chat.Id, "Ошибка при добавлении вопроса");
                     Logger.Info(userInsertName + " insert false");
                 }
-                insert = false;
+                insertOptions.insert = false;
                 insertUser.Remove(message.Chat.Id);
             }
             else
             {
                 await Bot.SendTextMessageAsync(message.Chat.Id, "Редактирования пока нет, вводите все заново, раз так!\n\nДобавить новый вопрос /insert");
                 Logger.Info(userInsertName + "incorrect");
-                insert = false;
+                insertOptions.insert = false;
                 insertUser.Remove(message.Chat.Id);
             }
         }
@@ -710,7 +803,7 @@ namespace BotGame
             DeleteOptions deleteOptions = new DeleteOptions();
             if (!deleteUser.ContainsKey(message.From.Id))
             {
-                delete = true;
+                deleteOptions.delete = true;
                 deleteOptions = config.SelectForDelete();
                 SendMsgDelete(deleteOptions, message);
                 deleteUser.Add(message.From.Id, deleteOptions);
@@ -775,4 +868,4 @@ namespace BotGame
             }
         }
     }
-}
+} 

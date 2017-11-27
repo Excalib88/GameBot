@@ -16,11 +16,25 @@ namespace BotGame
         private const string NAME_TOKEN = "token";
         private const string NAME_ID_BOT = "id_bot";
         private const string NAME_ADMIN = "admin";
-        public const string RULE_INSERT = "rule_insert";
+        private const string RULE_INSERT = "rule_insert";
+        private const string NAME_BOT = "name_bot";
 
         private Hashtable settings;
 
         #region getset
+
+        public string NameBot
+        {
+            get
+            {
+                return settings[NAME_BOT].ToString();
+            }
+            private set
+            {
+                settings[NAME_BOT] = value;
+            }
+        }
+
         public int RuleInsert
         {
             get
@@ -100,7 +114,7 @@ namespace BotGame
                         settings.Add(record["key"].ToString(), record["value"]);
                 }                
                 connection.Close();
-                foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT, NAME_ADMIN, RULE_INSERT })
+                foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT, NAME_ADMIN, RULE_INSERT, NAME_BOT })
                 {
                     if (!settings.ContainsKey(name))
                     {                        
