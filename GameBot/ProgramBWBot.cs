@@ -44,7 +44,8 @@ namespace BotGame
         }
 
         static async Task<MessageOUT> SendIssuesReply(
-            TelegramBotClient Bot, long chatId, string num, IssuesClass issues, string textStart = "", int replayMsgId = 0)
+            TelegramBotClient Bot, long chatId, string num, 
+            IssuesClass issues, string textStart = "", int replayMsgId = 0)
         {
             Game gameObject = (Game)gameChat[chatId];
             Logger.Info(issues.QuestionText);
@@ -55,6 +56,7 @@ namespace BotGame
             txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_3) ? "\n3: " + issues.PossibleAnswer_3 : "";
             txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_4) ? "\n4: " + issues.PossibleAnswer_4 : "";
             txtQuest += !String.IsNullOrEmpty(issues.PossibleAnswer_5) ? "\n5: " + issues.PossibleAnswer_5 : "";
+
             Telegram.Bot.Types.Message msg = new Telegram.Bot.Types.Message();
 
             string textMsg = textStart + "Вопрос " + num + "\n" + txtQuest;
@@ -94,7 +96,8 @@ namespace BotGame
         }
 
         static async Task<MessageOUT> SendIssuesButton(
-            TelegramBotClient Bot, long chatId, string num, IssuesClass issues, string textStart = "", int replayMsgId = 0)
+            TelegramBotClient Bot, long chatId, string num, 
+            IssuesClass issues, string textStart = "", int replayMsgId = 0)
         {
             Game gameObject = (Game)gameChat[chatId];
             Logger.Info(issues.QuestionText);
@@ -155,8 +158,7 @@ namespace BotGame
                 MessageText = message.Text,
                 MmessageDate = message.Date,
                 userWin = new User()
-        };
-            //Logger.Info("save msgOUT id " + msgOUTtemp.MessageId);
+            };
             gameObject.messageOUTobject.Add(msgOUTtemp);
             return msgOUTtemp;
         }
@@ -182,7 +184,6 @@ namespace BotGame
                 ReplayToUserId = message.ReplyToMessage == null ? -1 : message.ReplyToMessage.From.Id,
                 userAttempt = new User { Id = message.From.Id, Name = GetUserName(message), Username = message.From.Username }
             };
-
             gameObject.messageINobject.Add(msgINtemp);
             return msgINtemp;
         }
@@ -233,7 +234,7 @@ namespace BotGame
                         }
                         catch
                         {
-                            Logger.Warn("dont send count issues in base in chat: " + message.Chat.Id.ToString());
+                            Logger.Warn("not send count issues in base in chat: " + message.Chat.Id.ToString());
                         }
                     }
                     if ((message.Text.StartsWith("/win") || message.Text.StartsWith("/win" + config.NameBot)) 
@@ -246,7 +247,7 @@ namespace BotGame
                         }
                         catch
                         {
-                            Logger.Warn("dont send win in chat: " + message.Chat.Id.ToString());
+                            Logger.Warn("not send win in chat: " + message.Chat.Id.ToString());
                         }
                     }
                     InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];

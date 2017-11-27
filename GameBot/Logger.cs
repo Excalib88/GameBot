@@ -8,6 +8,7 @@ namespace BotGame
         public const string TIME_FORMAT = @"yyyy-MM-dd HH:mm:ss";
 
         #region write
+
         public static void Info(string text)
         {
             WriteToLog(text, ConsoleColor.DarkGray, "info");
@@ -34,10 +35,7 @@ namespace BotGame
             WriteToLog(text, ConsoleColor.Cyan, "debug");
         }
 
-        public static void DebugMessage(Telegram.Bot.Types.Message msg)
-        {
-            
-        }
+        // todo:debugMsg
 
         #endregion write
 

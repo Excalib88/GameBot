@@ -23,7 +23,7 @@ namespace BotGame
                         
             if (max > 1)
             {
-                textMsg += "Вопросы с наибольшим количеством попыток:\n";
+                textMsg += "Вопросы с наибольшим количеством попыток ответов:\n";
                 List<MessageOUT> resultAttemptsAnswers = newMsg.FindAll(a => a.AttemptsAnswers == max);
                 foreach (MessageOUT m in resultAttemptsAnswers)
                 {
@@ -68,7 +68,7 @@ namespace BotGame
             foreach (int i in id)
             {
                 number = newMsg.Count(p => p.userWin.Name == user[i].ToString());
-                //userWIN
+                // this user WIN
                 if (number > r)
                 {
                     userWIN = new User
@@ -110,6 +110,7 @@ namespace BotGame
             SelectUserWin();
 
             string win = "Победители в игре:\n";
+            // todo: сделать жирным
             win += userWIN.Name + "\n";
             config.SaveStatistics(userWIN, idQuestionAttempts, idQuestionTime, ChatId, ChatName);
 
@@ -123,7 +124,8 @@ namespace BotGame
             foreach (User u in allUser)
             {
                 win += u.Name + ": количество правильных ответов " + u.countCorrectAnswer.ToString() + "\n";
-            }            
+            }        
+            // todo: так же в игре принимали участие и все такое прочее
             
             return win;
         }
