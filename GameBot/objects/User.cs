@@ -6,5 +6,6 @@
         public string Name;
         public string Username;
         public int countCorrectAnswer;
+        public int countInCorrectAnswer;
     }
 }

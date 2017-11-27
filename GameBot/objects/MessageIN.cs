@@ -6,10 +6,6 @@ namespace BotGame
     {
         public long ChatId;
         public int MessageId;
-        //public int UserId;
-        //public string UserName;
-        //public string UserLastName;
-        //public string UserUsername;
         public string MessageText;
         public DateTime MmessageDate;
 
