@@ -250,6 +250,7 @@ namespace BotGame
                             Logger.Warn("not send win in chat: " + message.Chat.Id.ToString());
                         }
                     }
+
                     InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
 
                     if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert" + config.NameBot)) || (insertOptions != null))
@@ -280,6 +281,7 @@ namespace BotGame
                                 await Delete(message);
                                 return;
                             }
+
                     string textStart = "";
                     if (message.Text == @"/newgame" || message.Text == @"/newgame" + config.NameBot)
                         if (StartGame(message))
@@ -297,7 +299,7 @@ namespace BotGame
                         // получаем вопрос
                         gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];                        
                         // если ответ через реплай
-                        if (gameObject.issuesObject.TypeAnswer == 0)
+                        if (gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_REPLY)
                         {
                             if (gameObject.msgOUTobject is null)
                             {
@@ -339,14 +341,14 @@ namespace BotGame
                         }// если ответ через реплай
                         else
                         // если ответ через кнопки
-                        if ((gameObject.issuesObject.TypeAnswer == 1) && (gameObject.msgOUTobject is null))
+                        if ((gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON) && (gameObject.msgOUTobject is null))
                         {
                             gameObject.num++;
                             gameObject.msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, textStart);
                             textStart = "";
                         }// если ответ через кнопки         
                         else 
-                        if ((gameObject.issuesObject.TypeAnswer == 1))
+                        if ((gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON))
                         {
                             if (message.ReplyToMessage != null)
                             {
@@ -458,7 +460,8 @@ namespace BotGame
             }
             else
             {
-                Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect answer");
+                Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name 
+                    + " incorrect answer");
                 gameObject.msgINobject = null;
             }
 
@@ -482,9 +485,9 @@ namespace BotGame
                 if (gameObject.questionNumber.Count > 1)
                     temp += "Следующий вопрос:\n\n";
                 
-                if (gameObject.issuesObject.TypeAnswer == 0)
+                if (gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_REPLY)
                     gameObject.msgOUTobject = await SendIssuesReply(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, temp, message.MessageId);
-                if (gameObject.issuesObject.TypeAnswer == 1)
+                if (gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON)
                     gameObject.msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, temp, message.MessageId);
             }
             else
@@ -559,7 +562,8 @@ namespace BotGame
             msgOUT = null;
         }
 
-        static async public Task SendMsgKeyboardInsert(long chatId, string text, string[] btnText, InsertOptions insertOptions)
+        static async public Task SendMsgKeyboardInsert(long chatId, string text, 
+            string[] btnText, InsertOptions insertOptions)
         {
             InlineKeyboardCallbackButton[] inl = new InlineKeyboardCallbackButton[btnText.Length];
             for (int i = 0; i < btnText.Length; i++)
@@ -604,7 +608,7 @@ namespace BotGame
                 Logger.Info(userInsertName + "добавляет новый вопрос");
                 // config.RuleInsert
                 insertOptions.flag = InsertOptions.INSERT_START;
-                // или пришлите картинку с вопросом
+                // todo: или пришлите картинку с вопросом
                 await SendInsertMsg(message.Chat.Id, "Введите текст вопроса", insertOptions);
                 return;
             }

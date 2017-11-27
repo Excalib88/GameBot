@@ -2,6 +2,9 @@
 {
     public class IssuesClass
     {
+        public const int TYPE_ANSWER_REPLY = 0;
+        public const int TYPE_ANSWER_BUTTON = 1;
+
         public int Id;
         public string QuestionText;
         public string CorrectAnswer;
