@@ -110,6 +110,7 @@ namespace BotGame
                 new InlineKeyboardCallbackButton(btn2, "2"),
                 new InlineKeyboardCallbackButton(btn3, "3"),
             });
+
             Telegram.Bot.Types.Message msg = new Telegram.Bot.Types.Message();
 
             string textMsg = textStart + "Вопрос " + num + "\n<b>" + issues.QuestionText + "</b>";
@@ -298,7 +299,7 @@ namespace BotGame
                     {
                         // получаем вопрос
                         gameObject.issuesObject = (IssuesClass)gameObject.issues[gameObject.questionNumber[0]];                        
-                        // если ответ через реплай
+                        
                         if (gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_REPLY)
                         {
                             if (gameObject.msgOUTobject is null)
@@ -338,15 +339,15 @@ namespace BotGame
                                     }
                                 }                             
                             }
-                        }// если ответ через реплай
+                        }
                         else
-                        // если ответ через кнопки
-                        if ((gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON) && (gameObject.msgOUTobject is null))
+                        if ((gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON) 
+                            && (gameObject.msgOUTobject is null))
                         {
                             gameObject.num++;
                             gameObject.msgOUTobject = await SendIssuesButton(Bot, message.Chat.Id, gameObject.num.ToString(), gameObject.issuesObject, textStart);
                             textStart = "";
-                        }// если ответ через кнопки         
+                        }
                         else 
                         if ((gameObject.issuesObject.TypeAnswer == IssuesClass.TYPE_ANSWER_BUTTON))
                         {
@@ -409,7 +410,6 @@ namespace BotGame
                         await Insert(message);
                         return;
                     }
-
                 };
                 Bot.StartReceiving();
             }
