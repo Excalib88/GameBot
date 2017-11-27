@@ -21,8 +21,8 @@ namespace BotGame
             if (!String.IsNullOrEmpty(key) && !BW.IsBusy)
             {
                 BW.RunWorkerAsync(key);
-            }
-            Logger.Info("start bot");
+                Logger.Info("start bot");
+            }            
 
             while (true)
             {

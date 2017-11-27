@@ -112,7 +112,8 @@ namespace BotGame
                 {
                     if (!settings.ContainsKey(record["key"].ToString()))
                         settings.Add(record["key"].ToString(), record["value"]);
-                }                
+                }
+                readerKey.Close();
                 connection.Close();
                 foreach (string name in new string[] { NAME_DELETION_DELAY, NAME_TOKEN, NAME_ID_BOT, NAME_ADMIN, RULE_INSERT, NAME_BOT })
                 {
@@ -165,6 +166,7 @@ namespace BotGame
                             });
                     }
                 }
+                reader.Close();
                 connection.Close();
                 Logger.Success("select issues from base");
             }
@@ -224,6 +226,7 @@ namespace BotGame
                 {
                     result += record["name"].ToString() + ": " + record["count"].ToString() + " win\n";
                 }
+                readerKey.Close();
                 connection.Close();
                 Logger.Success("select count win from base");
             }
@@ -249,6 +252,7 @@ namespace BotGame
                 {
                     result = record["count"].ToString();
                 }
+                readerKey.Close();
                 connection.Close();
                 Logger.Success("select count issues from base");                
             }
@@ -297,6 +301,7 @@ namespace BotGame
                 {
                     result = record["count"].ToString();                    
                 }
+                readerKey.Close();
                 connection.Close();
                 Logger.Success("select count game in base: " + result);
             }
@@ -329,6 +334,7 @@ namespace BotGame
                     if (!delete.issuesDelete.ContainsKey(record["id"].ToString()))
                         delete.issuesDelete.Add(Convert.ToInt32(record["id"]), record["question_text"].ToString().Replace("@BR","\n"));
                 }
+                reader.Close();
                 connection.Close();
                 Logger.Success("select for delete");
             }
