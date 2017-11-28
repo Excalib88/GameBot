@@ -161,7 +161,8 @@ namespace BotGame
                 MmessageDate = message.Date,
                 userWin = new User()
             };
-            gameObject.messageOUTobject.Add(msgOUTtemp);
+            if (gameObject != null)
+                gameObject.messageOUTobject.Add(msgOUTtemp);
             return msgOUTtemp;
         }
 
@@ -227,7 +228,8 @@ namespace BotGame
                     Game gameObject = (Game)gameChat[message.Chat.Id];
                     if (gameObject == null)
                         gameObject = new Game();
-                    if ((message.Text.StartsWith("/count") || message.Text.StartsWith("/count" + config.NameBot)) && config.ADMIN.Contains(message.From.Id.ToString()))
+                    if ((message.Text.StartsWith("/count") || message.Text.StartsWith("/count" + config.NameBot)) 
+                    && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
                         {
@@ -247,9 +249,10 @@ namespace BotGame
                             await SendMsg(message.Chat.Id, "Рейтинг чата:\n\n" + config.SelectWin(message.Chat.Id));
                             Logger.Info("send win in chat: " + message.Chat.Id.ToString());
                         }
-                        catch
+                        catch (Exception ew)
                         {
                             Logger.Warn("not send win in chat: " + message.Chat.Id.ToString());
+                            Logger.Warn(ew.Message);
                         }
                     }
 
