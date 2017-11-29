@@ -20,7 +20,8 @@ namespace BotGame
 
         static bool StartGame(Telegram.Bot.Types.Message message)
         {
-            if (!gameChat.ContainsKey(message.Chat.Id) && config.ADMIN.Contains(message.From.Id.ToString()))
+            if ((!gameChat.ContainsKey(message.Chat.Id) && config.ADMIN.Contains(message.From.Id.ToString()))
+                || (!gameChat.ContainsKey(message.Chat.Id) && (message.Chat.Type == ChatType.Private)))
             {
                 gameChat.Add(message.Chat.Id,
                     new Game
@@ -372,6 +373,14 @@ namespace BotGame
                 
                 Bot.OnCallbackQuery += async (object sc, CallbackQueryEventArgs ev) =>
                 {
+                    var message = ev.CallbackQuery.Message;
+                    Game gameObject = (Game)gameChat[message.Chat.Id];
+                    if ((gameObject != null) && gameObject.game)
+                    {
+                        await OnCallbackQueryGame(message, ev, gameObject);
+                        return;
+                    }
+
                     try
                     {
                         await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
@@ -379,14 +388,6 @@ namespace BotGame
                     catch (Telegram.Bot.Exceptions.ApiRequestException ert)
                     {
                         Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
-                    }
-
-                    var message = ev.CallbackQuery.Message;
-                    Game gameObject = (Game)gameChat[message.Chat.Id];
-                    if ((gameObject != null) && gameObject.game)
-                    {
-                        await OnCallbackQueryGame(message, ev, gameObject);
-                        return;
                     }
 
                     InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
@@ -432,6 +433,15 @@ namespace BotGame
             {
                 try
                 {
+                    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
+                }
+                catch (Telegram.Bot.Exceptions.ApiRequestException ert)
+                {
+                    Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
+                }
+
+                try
+                {
                     try
                     {
                         await Bot.EditMessageTextAsync(gameObject.msgOUTobject.ChatId, gameObject.msgOUTobject.MessageId, gameObject.msgOUTobject.MessageText,
@@ -464,6 +474,7 @@ namespace BotGame
             }
             else
             {
+                await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id, "Неверный ответ!", false);
                 Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name 
                     + " incorrect answer");
                 gameObject.msgINobject = null;
