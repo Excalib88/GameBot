@@ -20,7 +20,7 @@ namespace BotGame
             string key = config.TOKEN;
             if (!String.IsNullOrEmpty(key) && !BW.IsBusy)
             {
-                BW.RunWorkerAsync(key);
+                BW.RunWorkerAsync(key);                
                 Logger.Info("start bot");
             }            
 
