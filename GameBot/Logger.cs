@@ -11,7 +11,7 @@ namespace BotGame
 
         public static void Info(string text)
         {
-            WriteToLog(text, ConsoleColor.DarkGray, "info");
+            WriteToLog(text, ConsoleColor.DarkBlue, "info");
         }
 
         public static void Success(string text)

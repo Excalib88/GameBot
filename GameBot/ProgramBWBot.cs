@@ -20,8 +20,9 @@ namespace BotGame
 
         static bool StartGame(Telegram.Bot.Types.Message message)
         {
-            if ((!gameChat.ContainsKey(message.Chat.Id) && config.ADMIN.Contains(message.From.Id.ToString()))
-                || (!gameChat.ContainsKey(message.Chat.Id) && (message.Chat.Type == ChatType.Private)))
+            if ((!gameChat.ContainsKey(message.Chat.Id)) && 
+                (config.ADMIN.Contains(message.From.Id.ToString())
+                || (message.Chat.Type == ChatType.Private)))
             {
                 gameChat.Add(message.Chat.Id,
                     new Game
@@ -235,11 +236,11 @@ namespace BotGame
                         try
                         {
                             await SendMsg(message.Chat.Id, "Количество вопросов в базе: " + config.CountIssue());
-                            Logger.Info("send count issues in base in chat: " + message.Chat.Id.ToString());
+                            Logger.Info("send count issues in base in chat: " + message.Chat.Title);
                         }
                         catch
                         {
-                            Logger.Warn("not send count issues in base in chat: " + message.Chat.Id.ToString());
+                            Logger.Warn("not send count issues in base in chat: " + message.Chat.Title);
                         }
                     }
                     if ((message.Text.StartsWith("/win") || message.Text.StartsWith("/win" + config.NameBot)) 
@@ -248,11 +249,11 @@ namespace BotGame
                         try
                         {
                             await SendMsg(message.Chat.Id, "Рейтинг чата:\n\n" + config.SelectWin(message.Chat.Id));
-                            Logger.Info("send win in chat: " + message.Chat.Id.ToString());
+                            Logger.Info("send win in chat: " + message.Chat.Title);
                         }
                         catch (Exception ew)
                         {
-                            Logger.Warn("not send win in chat: " + message.Chat.Id.ToString());
+                            Logger.Warn("not send win in chat: " + message.Chat.Title);
                             Logger.Warn(ew.Message);
                         }
                     }
@@ -284,7 +285,7 @@ namespace BotGame
                         if (config.ADMIN.Contains(message.From.Id.ToString()))
                             if (message.Chat.Type == ChatType.Private)
                             {
-                                await Delete(message);
+                                await Delete.DeleteQuestion(message, deleteUser, config, Bot);
                                 return;
                             }
 
@@ -293,9 +294,9 @@ namespace BotGame
                         if (StartGame(message))
                         {
                             var m = await SaveMsgIn(message);
-                            Logger.Success("chat " + message.Chat.Id.ToString() + " start game");
+                            Logger.Success("chat " + message.Chat.Title + " start game");
                             gameObject = SelectIssuesGame(message);
-                            Logger.Info("chat " + message.Chat.Id.ToString() + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
+                            Logger.Info("chat " + message.Chat.Title + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
                             string count = config.SelectCountGame(message.Chat.Id);
                             textStart += "Игра №" + count + " началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
                             gameObject.game = true;
@@ -324,7 +325,7 @@ namespace BotGame
                                         gameObject.msgOUTobject.AttemptsAnswers++;
                                         if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == gameObject.msgINobject.MessageText.ToLower().Trim())
                                         {
-                                            Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " correct answer");
+                                            Logger.Info("chat " + message.Chat.Title + " " + gameObject.msgINobject.userAttempt.Name + " correct answer");
                                             gameObject.msgOUTobject.AnswerDate = gameObject.msgINobject.MmessageDate;
                                             gameObject.msgOUTobject.userWin = gameObject.msgINobject.userAttempt;
                                             try
@@ -338,7 +339,7 @@ namespace BotGame
                                         }
                                         else
                                         {
-                                            Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name + " incorrect answer");
+                                            Logger.Info("chat " + message.Chat.Title + " " + gameObject.msgINobject.userAttempt.Name + " incorrect answer");
                                             gameObject.msgINobject = null;
                                         }
                                     }
@@ -474,7 +475,7 @@ namespace BotGame
             }
             else
             {
-                await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id, "Неверный ответ!", false);
+                await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id, "'" + ev.CallbackQuery.Data + "' неверный ответ!", false);
                 Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name 
                     + " incorrect answer");
                 gameObject.msgINobject = null;
@@ -516,7 +517,7 @@ namespace BotGame
         static async void EndGame(Telegram.Bot.Types.Message message)
         {
             Game gameObject = (Game)gameChat[message.Chat.Id];
-            Logger.Success("chat " + message.Chat.Id.ToString() + " end game");
+            Logger.Success("chat " + message.Chat.Title + " end game");
             string win = Statistics.GetStatistics(gameObject.messageOUTobject, config, message.Chat.Id, message.Chat.FirstName);
             gameObject.issues.Clear();
             await Bot.SendTextMessageAsync(message.Chat.Id, win);
@@ -529,7 +530,7 @@ namespace BotGame
         static async void DeleteMsg(Telegram.Bot.Types.Message message)
         {
             Game gameObject = (Game)gameChat[message.Chat.Id];
-            Logger.Info("chat " + message.Chat.Id.ToString() + " start delete message");
+            Logger.Info("chat " + message.Chat.Title + " start delete message");
             foreach (MessageOUT msgDel in gameObject.messageOUTobject)
             {
                 if (msgDel != null)
@@ -539,8 +540,8 @@ namespace BotGame
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("chat " + message.Chat.Id.ToString() + " " + e.Message);
-                        Logger.Warn("chat " + message.Chat.Id.ToString() + " " + msgDel.MessageText);
+                        Logger.Error("chat " + message.Chat.Title + " " + e.Message);
+                        Logger.Warn("chat " + message.Chat.Title + " " + msgDel.MessageText);
                     }
             }
             foreach (MessageIN msgDel in gameObject.messageINobject)
@@ -552,13 +553,13 @@ namespace BotGame
                     }
                     catch (Exception e)
                     {
-                        Logger.Error("chat " + message.Chat.Id.ToString() + " " + e.Message); 
-                        Logger.Warn("chat " + message.Chat.Id.ToString() + " " + msgDel.MessageText);
+                        Logger.Error("chat " + message.Chat.Title + " " + e.Message); 
+                        Logger.Warn("chat " + message.Chat.Title + " " + msgDel.MessageText);
                     }
             }
             gameObject.messageOUTobject.Clear();
             gameObject.messageINobject.Clear();
-            Logger.Info("chat " + message.Chat.Id.ToString() + " end delete message");
+            Logger.Info("chat " + message.Chat.Title + " end delete message");
         }
 
         static async public Task SendMsg(long chatId, string text)
@@ -819,76 +820,6 @@ namespace BotGame
         {
             await Bot.SendTextMessageAsync(chatId, text);
             insertUser[chatId] = insertOptions;
-        }
-
-        static async public Task Delete(Telegram.Bot.Types.Message message)
-        {
-            DeleteOptions deleteOptions = new DeleteOptions();
-            if (!deleteUser.ContainsKey(message.From.Id))
-            {
-                deleteOptions.delete = true;
-                deleteOptions = config.SelectForDelete();
-                SendMsgDelete(deleteOptions, message);
-                deleteUser.Add(message.From.Id, deleteOptions);
-                return;
-            }
-            if (message.Text.StartsWith("/delete_"))
-            {
-                int s = Convert.ToInt32(message.Text.Replace("/delete_", ""));
-                bool b = config.DeleteIssue(s);
-                if (b)
-                {
-                    await Bot.SendTextMessageAsync(message.Chat.Id, "Вопрос удален", parseMode: ParseMode.Default);
-                    Logger.Info(message.From.FirstName + " insert true");
-                }
-                else
-                {
-                    await Bot.SendTextMessageAsync(message.Chat.Id, "Ошибка при удалении вопроса", parseMode: ParseMode.Default);
-                    Logger.Info(message.From.FirstName + " insert false");
-                }
-                deleteOptions.issuesDelete.Remove(s);
-            }
-            if (message.Text == "/next10")
-            {
-                deleteOptions = (DeleteOptions)deleteUser[message.From.Id];
-                SendMsgDelete(deleteOptions, message);
-            }
-        }
-
-        static async void SendMsgDelete(DeleteOptions deleteOptions, Telegram.Bot.Types.Message message)
-        {
-            string textMsg = "";
-            int n = 0;
-            for (int i = deleteOptions.begin; i < deleteOptions.maxId; i++)
-            {
-                string s = (String)deleteOptions.issuesDelete[i];
-                if (!String.IsNullOrEmpty(s))
-                {
-                    textMsg += i.ToString() + ". " + s + " /delete_" + i.ToString() + "\n\n";
-                    n++;
-                }
-                if (i == deleteOptions.maxId - 1)
-                {
-                    deleteOptions.begin = 0;
-                    textMsg += "/next10";
-                    break;
-                }
-                if (n == deleteOptions.count)
-                {
-                    deleteOptions.begin = i + 1;
-                    textMsg += "/next10";
-                    break;
-                }
-            }
-            try
-            {
-                deleteOptions.msg = await Bot.SendTextMessageAsync(message.Chat.Id, textMsg, parseMode: ParseMode.Html);
-            }
-            catch (Telegram.Bot.Exceptions.ApiRequestException e)
-            {
-                Logger.Warn(e.Message);
-                deleteOptions.msg = await Bot.SendTextMessageAsync(message.Chat.Id, textMsg, parseMode: ParseMode.Default);
-            }
-        }
+        }        
     }
 } 

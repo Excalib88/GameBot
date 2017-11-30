@@ -26,7 +26,7 @@ namespace BotGame
 
             while (true)
             {
-                Console.ReadLine();
+                //Console.ReadLine();
             }
         }                
     }
