@@ -186,7 +186,7 @@ namespace BotGame
             {
                 insertOptions.newQuestion.TypeAnswer = 0;
                 Logger.Info(userInsertName + "тип ответа: реплай");
-                insertOptions.flag = InsertOptions.INSERT_CORRECT;
+                insertOptions.flag = InsertOptions.INSERT_COMPLEXITY;
             }
             if (insertOptions.flag == InsertOptions.INSERT_TYPE_ANSWER)
             {
@@ -195,7 +195,11 @@ namespace BotGame
                 {
                     insertOptions.newQuestion.TypeAnswer = n - 1;
                     Logger.Info(userInsertName + "тип ответа: " + message.Text);
-                    insertOptions.flag = InsertOptions.INSERT_CORRECT;
+                    insertOptions.flag = InsertOptions.INSERT_COMPLEXITY;
+
+                    await SendMsgKeyboardInsert(message.Chat.Id, "Выберите сложность вопроса",
+                    new string[] { "easy", "medium", "hard", "Славик" }, insertOptions, Bot, insertUser);
+                    return;
                 }
                 else
                 if (!res || (n != 2 || n != 1))
@@ -206,6 +210,23 @@ namespace BotGame
                     return;
                 }
             }
+
+            if (insertOptions.flag == InsertOptions.INSERT_COMPLEXITY)
+            {
+                bool res = int.TryParse(insertOptions.btnText, out int n);
+                if (!res || (n > 4) || (n < 1))
+                {
+                    await SendMsgKeyboardInsert(message.Chat.Id, "Выберите сложность вопроса",
+                    new string[] { "easy", "medium", "hard", "Славик" }, insertOptions, Bot, insertUser);
+                    return;
+                }
+                else
+                {
+                    insertOptions.newQuestion.Complexity = n;
+                    insertOptions.flag = InsertOptions.INSERT_CORRECT;
+                }
+            }
+
             if (insertOptions.flag == InsertOptions.INSERT_CORRECT)
             {
                 string txtQuest = "Проверьте правильнность введенных данных:\n\n" + insertOptions.newQuestion.QuestionText;
@@ -216,6 +237,15 @@ namespace BotGame
                 txtQuest += !String.IsNullOrEmpty(insertOptions.newQuestion.PossibleAnswer_4) ? "\n4 - " + insertOptions.newQuestion.PossibleAnswer_4 : "";
                 txtQuest += !String.IsNullOrEmpty(insertOptions.newQuestion.PossibleAnswer_5) ? "\n5 - " + insertOptions.newQuestion.PossibleAnswer_5 : "";
                 txtQuest += "\n\nВерный ответ - " + insertOptions.newQuestion.CorrectAnswer;
+                txtQuest += "\n\nСложность - ";
+                if (insertOptions.newQuestion.Complexity == 1)
+                    txtQuest += "easy";
+                else if (insertOptions.newQuestion.Complexity == 2)
+                    txtQuest += "medium";
+                else if (insertOptions.newQuestion.Complexity == 3)
+                    txtQuest += "hard";
+                else if (insertOptions.newQuestion.Complexity == 4)
+                    txtQuest += "Славик";
                 txtQuest += "\n\nОтвет с помощью ";
                 txtQuest += insertOptions.newQuestion.TypeAnswer == 0 ? "реплая" : "кнопок";
                 Logger.Info(userInsertName + txtQuest);

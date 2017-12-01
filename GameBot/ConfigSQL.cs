@@ -185,10 +185,10 @@ namespace BotGame
                 connection.Open();
                 SQLiteCommand command1 = new SQLiteCommand("insert into issues (question_text, correct_answer, " +
                     "possible_answer_1, possible_answer_2, possible_answer_3, possible_answer_4, possible_answer_5, " +
-                    "type_answer)" +
+                    "type_answer, complexity)" +
                     "select @question_text, '" + issues.CorrectAnswer.ToString() + "', " +
                     "@possible_answer_1, @possible_answer_2, @possible_answer_3, @possible_answer_4, @possible_answer_5, " +
-                     issues.TypeAnswer.ToString() + ";", connection);
+                     "@type_answer, @complexity; ", connection);
                 Logger.Info(command1.CommandText);
                 command1.Parameters.AddWithValue("@question_text", issues.QuestionText.Replace("\n","@BR"));
                 command1.Parameters.AddWithValue("@possible_answer_1", issues.PossibleAnswer_1);
@@ -196,6 +196,8 @@ namespace BotGame
                 command1.Parameters.AddWithValue("@possible_answer_3", issues.PossibleAnswer_3);
                 command1.Parameters.AddWithValue("@possible_answer_4", issues.PossibleAnswer_4);
                 command1.Parameters.AddWithValue("@possible_answer_5", issues.PossibleAnswer_5);
+                command1.Parameters.AddWithValue("@type_answer", issues.TypeAnswer);
+                command1.Parameters.AddWithValue("@complexity", issues.Complexity);
                 command1.ExecuteNonQuery();
                 connection.Close();
                 Logger.Success("save issues in base");

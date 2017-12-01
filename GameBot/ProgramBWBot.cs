@@ -10,6 +10,10 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineKeyboardButtons;
 using Telegram.Bot.Types.ReplyMarkups;
 
+/*
+ * Links 'tg://user?id=<user_id>' can be used to mention a user by their id without using a username.
+ * */
+
 namespace BotGame
 {
     partial class Program
@@ -230,8 +234,8 @@ namespace BotGame
                     Game gameObject = (Game)gameChat[message.Chat.Id];
                     if (gameObject == null)
                         gameObject = new Game();
-                    if ((message.Text.StartsWith("/count") || message.Text.StartsWith("/count" + config.NameBot)) 
-                    && config.ADMIN.Contains(message.From.Id.ToString()))
+
+                    if ((message.Text.StartsWith("/count")) && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
                         {
@@ -243,8 +247,8 @@ namespace BotGame
                             Logger.Warn("not send count issues in base in chat: " + message.Chat.Title);
                         }
                     }
-                    if ((message.Text.StartsWith("/win") || message.Text.StartsWith("/win" + config.NameBot)) 
-                        && config.ADMIN.Contains(message.From.Id.ToString()))
+
+                    if ((message.Text.StartsWith("/win")) && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
                         {
@@ -259,8 +263,7 @@ namespace BotGame
                     }
 
                     InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
-
-                    if ((message.Text.StartsWith("/insert") || message.Text.StartsWith("/insert" + config.NameBot)) || (insertOptions != null))
+                    if ((message.Text.StartsWith("/insert")) || (insertOptions != null))
                         if (config.ADMIN.Contains(message.From.Id.ToString()))
                             if (message.Chat.Type == ChatType.Private)
                             {
@@ -276,21 +279,20 @@ namespace BotGame
                                         });
                                 }
                                 await Insert.InsertQuestion(message, insertUser, Bot, config);
-                                return;
+                                //return;
                             }
 
                     DeleteOptions deleteOptions = (DeleteOptions)deleteUser[message.From.Id];
-
-                    if ((message.Text.StartsWith("/delete") || message.Text.StartsWith("/delete" + config.NameBot)) || (deleteOptions != null))
+                    if ((message.Text.StartsWith("/delete")) || (deleteOptions != null))
                         if (config.ADMIN.Contains(message.From.Id.ToString()))
                             if (message.Chat.Type == ChatType.Private)
                             {
                                 await Delete.DeleteQuestion(message, deleteUser, config, Bot);
-                                return;
+                                //return;
                             }
 
                     string textStart = "";
-                    if (message.Text == @"/newgame" || message.Text == @"/newgame" + config.NameBot)
+                    if (message.Text == @"/newgame")
                         if (StartGame(message))
                         {
                             var m = await SaveMsgIn(message);
@@ -368,7 +370,7 @@ namespace BotGame
                     if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
                     {
                         gameObject.end = false;
-                        EndGame(message);
+                        await EndGame(message);
                     }
                 };
                 
@@ -514,7 +516,7 @@ namespace BotGame
             gameObject.msgINobject = null;
         }
 
-        static async void EndGame(Telegram.Bot.Types.Message message)
+        static async Task EndGame(Telegram.Bot.Types.Message message)
         {
             Game gameObject = (Game)gameChat[message.Chat.Id];
             Logger.Success("chat " + message.Chat.Title + " end game");
@@ -522,12 +524,12 @@ namespace BotGame
             gameObject.issues.Clear();
             await Bot.SendTextMessageAsync(message.Chat.Id, win);
             await Task.Delay(config.DeletionDelay);
-            DeleteMsg(message);
+            await DeleteMsg(message);
             gameObject.num = 0;
             gameChat.Remove(message.Chat.Id);
         }
 
-        static async void DeleteMsg(Telegram.Bot.Types.Message message)
+        static async Task DeleteMsg(Telegram.Bot.Types.Message message)
         {
             Game gameObject = (Game)gameChat[message.Chat.Id];
             Logger.Info("chat " + message.Chat.Title + " start delete message");
@@ -562,7 +564,7 @@ namespace BotGame
             Logger.Info("chat " + message.Chat.Title + " end delete message");
         }
 
-        static async public Task SendMsg(long chatId, string text)
+        public static async Task SendMsg(long chatId, string text)
         {
             Telegram.Bot.Types.Message msgTemp = new Telegram.Bot.Types.Message();
             try
@@ -576,8 +578,6 @@ namespace BotGame
             }
             MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);
             msgOUT = null;
-        }
-
-        
+        }        
     }
 } 

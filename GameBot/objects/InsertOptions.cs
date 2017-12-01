@@ -12,6 +12,7 @@
         public const int INSERT_TYPE_ANSWER = 6;
         public const int INSERT_CORRECT = 7;
         public const int INSERT_END = 8;
+        public const int INSERT_COMPLEXITY = 9;
 
         public string btnText;
 
