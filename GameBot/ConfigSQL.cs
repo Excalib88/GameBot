@@ -130,7 +130,7 @@ namespace BotGame
             }
         }
 
-        public Hashtable SelectQuestion()
+        public Hashtable SelectQuestion(int complexityIn = default)
         {
             Hashtable issues = new Hashtable();
             try
@@ -139,7 +139,9 @@ namespace BotGame
                 SQLiteCommand command = new SQLiteCommand("select id, question_text," +
                     "correct_answer, possible_answer_1, possible_answer_2, possible_answer_3, " +
                     "possible_answer_4, possible_answer_5," +
-                    "complexity, category, type_answer from 'issues';", connection);
+                    "complexity, category, type_answer from 'issues' " +
+                    "where complexity = @complexity;", connection);
+                command.Parameters.AddWithValue("@complexity", complexityIn);
                 Logger.Info(command.CommandText);
                 SQLiteDataReader reader = command.ExecuteReader();
                 foreach (DbDataRecord record in reader)

@@ -197,14 +197,60 @@ namespace BotGame
             return msgINtemp;
         }
 
-        private static Game SelectIssuesGame(Telegram.Bot.Types.Message message)
+        private static async Task<Game> SelectIssuesGame(Telegram.Bot.Types.Message message)
         {
             Game gameObject = (Game)gameChat[message.Chat.Id];
+            // "easy", "medium", "hard", "Славик"
+            gameObject.complexity = -1;
+            if (message.Text.Length > 8)
+            {
+                string temp = message.Text.Replace("/newgame", "").Trim().ToLower();
+
+                bool res = int.TryParse(temp, out gameObject.complexity);
+                // если некорретно ввели - вернуть
+                if (!res)
+                {
+                    if (temp == "slavik")
+                        gameObject.complexity = 3;
+                    else if (temp == "hard")
+                        gameObject.complexity = 2;
+                    else if (temp == "medium")
+                        gameObject.complexity = 1;
+                    else if (temp == "easy")
+                        gameObject.complexity = 0;
+                }
+
+                if (gameObject.complexity > 3 || gameObject.complexity < 0)
+                {
+                    //gameObject.issues.Clear();
+                    await Bot.SendTextMessageAsync(message.Chat.Id, "Сложность игры указана неверно!");
+                    await Task.Delay(config.DeletionDelay);
+                    await DelOneMsg(message);
+                    gameObject.num = 0;
+                    gameChat.Remove(message.Chat.Id);
+                    return null;
+                }                
+            }    
+            else
+            {
+                //gameObject.complexity
+                Random rndComplexity = new Random();
+                gameObject.complexity = rndComplexity.Next(0,3);
+            }
             var countTemp = new int[] { 7, 10, 15 };
             Random rndTemp = new Random();
             int n = countTemp[rndTemp.Next(countTemp.Length)];
             // получаем список вопросов
-            gameObject.issues = config.SelectQuestion();
+            gameObject.issues = config.SelectQuestion(gameObject.complexity);
+            if (gameObject.issues.Count < 1)
+            {
+                await Bot.SendTextMessageAsync(message.Chat.Id, "Вопросов такой сложности пока нет.");
+                await Task.Delay(config.DeletionDelay);
+                await DelOneMsg(message);
+                gameObject.num = 0;
+                gameChat.Remove(message.Chat.Id);
+                return null;
+            }
             var KeyId = gameObject.issues.Keys;
             var vals = KeyId.Cast<int>().ToArray();
             for (int i = 0; i < n; i++)
@@ -214,6 +260,19 @@ namespace BotGame
                     gameObject.questionNumber.Add(val);
             }
             return gameObject;
+        }
+
+        static async Task DelOneMsg(Telegram.Bot.Types.Message message)
+        {
+            try
+            {
+                await Bot.DeleteMessageAsync(message.Chat.Id, message.MessageId);
+            }
+            catch (Exception e12)
+            {
+                Logger.Error("chat " + message.Chat.Title + " " + e12.Message);
+                Logger.Warn("chat " + message.Chat.Title + " " + message.Text);
+            }
         }
 
         async static void BWBot(object sender, DoWorkEventArgs e)
@@ -235,6 +294,15 @@ namespace BotGame
                     if (gameObject == null)
                         gameObject = new Game();
 
+                    if ((message.Text.StartsWith("/endgame")) && gameObject.game)
+                        if (config.ADMIN.Contains(message.From.Id.ToString()))
+                        {
+                            await SaveMsgIn(message);
+                            gameObject.end = false;
+                            await EndGame(message);
+                            return;
+                        }
+
                     if ((message.Text.StartsWith("/count")) && config.ADMIN.Contains(message.From.Id.ToString()))
                     {
                         try
@@ -246,6 +314,7 @@ namespace BotGame
                         {
                             Logger.Warn("not send count issues in base in chat: " + message.Chat.Title);
                         }
+                        await DelOneMsg(message);
                     }
 
                     if ((message.Text.StartsWith("/win")) && config.ADMIN.Contains(message.From.Id.ToString()))
@@ -260,6 +329,7 @@ namespace BotGame
                             Logger.Warn("not send win in chat: " + message.Chat.Title);
                             Logger.Warn(ew.Message);
                         }
+                        await DelOneMsg(message);
                     }
 
                     InsertOptions insertOptions = (InsertOptions)insertUser[message.Chat.Id];
@@ -292,16 +362,24 @@ namespace BotGame
                             }
 
                     string textStart = "";
-                    if (message.Text == @"/newgame")
+                    if (message.Text.StartsWith("/newgame"))
                         if (StartGame(message))
                         {
-                            var m = await SaveMsgIn(message);
+                            await SaveMsgIn(message);
                             Logger.Success("chat " + message.Chat.Title + " start game");
-                            gameObject = SelectIssuesGame(message);
-                            Logger.Info("chat " + message.Chat.Title + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
-                            string count = config.SelectCountGame(message.Chat.Id);
-                            textStart += "Игра №" + count + " началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n\n";
-                            gameObject.game = true;
+                            gameObject = await SelectIssuesGame(message);
+                            if (gameObject != null)
+                            {
+                                Logger.Info("chat " + message.Chat.Title + " всего вопросов: " + gameObject.questionNumber.Count.ToString());
+                                string count = config.SelectCountGame(message.Chat.Id);
+                                textStart += "Игра №" + count + " началась!\nВсего вопросов: " + gameObject.questionNumber.Count.ToString() + "\n" +
+                                "Сложность: " + gameObject.ComplexityText + "\n\n";
+                                gameObject.game = true;
+                            }
+                            else
+                            {
+                                return;
+                            }
                         }
                     if (gameObject.game)
                     {
@@ -576,8 +654,7 @@ namespace BotGame
                 Logger.Warn(ewq.Message);
                 msgTemp = await Bot.SendTextMessageAsync(chatId, text, parseMode: ParseMode.Default);
             }
-            MessageOUT msgOUT = await SaveMsgOUT(msgTemp, 0);
-            msgOUT = null;
+            await SaveMsgOUT(msgTemp, 0);
         }        
     }
 } 

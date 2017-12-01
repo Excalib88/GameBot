@@ -217,12 +217,12 @@ namespace BotGame
                 if (!res || (n > 4) || (n < 1))
                 {
                     await SendMsgKeyboardInsert(message.Chat.Id, "Выберите сложность вопроса",
-                    new string[] { "easy", "medium", "hard", "Славик" }, insertOptions, Bot, insertUser);
+                    new string[] { "easy", "medium", "hard", "Slavik" }, insertOptions, Bot, insertUser);
                     return;
                 }
                 else
                 {
-                    insertOptions.newQuestion.Complexity = n;
+                    insertOptions.newQuestion.Complexity = n - 1;
                     insertOptions.flag = InsertOptions.INSERT_CORRECT;
                 }
             }
@@ -238,14 +238,14 @@ namespace BotGame
                 txtQuest += !String.IsNullOrEmpty(insertOptions.newQuestion.PossibleAnswer_5) ? "\n5 - " + insertOptions.newQuestion.PossibleAnswer_5 : "";
                 txtQuest += "\n\nВерный ответ - " + insertOptions.newQuestion.CorrectAnswer;
                 txtQuest += "\n\nСложность - ";
-                if (insertOptions.newQuestion.Complexity == 1)
+                if (insertOptions.newQuestion.Complexity == 0)
                     txtQuest += "easy";
-                else if (insertOptions.newQuestion.Complexity == 2)
+                else if (insertOptions.newQuestion.Complexity == 1)
                     txtQuest += "medium";
-                else if (insertOptions.newQuestion.Complexity == 3)
+                else if (insertOptions.newQuestion.Complexity == 2)
                     txtQuest += "hard";
-                else if (insertOptions.newQuestion.Complexity == 4)
-                    txtQuest += "Славик";
+                else if (insertOptions.newQuestion.Complexity == 3)
+                    txtQuest += "Slavik";
                 txtQuest += "\n\nОтвет с помощью ";
                 txtQuest += insertOptions.newQuestion.TypeAnswer == 0 ? "реплая" : "кнопок";
                 Logger.Info(userInsertName + txtQuest);
