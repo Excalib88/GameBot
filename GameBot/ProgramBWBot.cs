@@ -14,6 +14,8 @@ using Telegram.Bot.Types.ReplyMarkups;
  * Links 'tg://user?id=<user_id>' can be used to mention a user by their id without using a username.
  * */
 
+    // Slavik krut
+
 namespace BotGame
 {
     partial class Program
@@ -507,20 +509,20 @@ namespace BotGame
 
         static async Task OnCallbackQueryGame(Telegram.Bot.Types.Message message, CallbackQueryEventArgs ev, Game gameObject)
         {
+            try
+            {
+                await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
+            }
+            catch (Telegram.Bot.Exceptions.ApiRequestException ert)
+            {
+                Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
+            }
+
             message.From = ev.CallbackQuery.From;
             gameObject.msgINobject = await SaveMsgIn(message);
             gameObject.msgOUTobject.AttemptsAnswers++;
             if (gameObject.issuesObject.CorrectAnswer.ToLower().Trim() == ev.CallbackQuery.Data.ToLower().Trim())
-            {
-                try
-                {
-                    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id);
-                }
-                catch (Telegram.Bot.Exceptions.ApiRequestException ert)
-                {
-                    Logger.Warn("Ошибка при редактировании кнопок:" + ert.Message);
-                }
-
+            { 
                 try
                 {
                     try
@@ -555,7 +557,7 @@ namespace BotGame
             }
             else
             {
-                await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id, "'" + ev.CallbackQuery.Data + "' неверный ответ!", false);
+            //    await Bot.AnswerCallbackQueryAsync(ev.CallbackQuery.Id, "'" + ev.CallbackQuery.Data + "' неверный ответ!", false);
                 Logger.Info("chat " + message.Chat.Id.ToString() + " " + gameObject.msgINobject.userAttempt.Name 
                     + " incorrect answer");
                 gameObject.msgINobject = null;
@@ -564,7 +566,7 @@ namespace BotGame
             if (gameObject.questionNumber.Count < 1 && !gameObject.game && gameObject.end)
             {
                 gameObject.end = false;
-                EndGame(message);
+                await EndGame(message);
             }
         }
 
